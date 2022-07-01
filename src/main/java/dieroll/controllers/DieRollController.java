@@ -1,4 +1,4 @@
-package dieroll;
+package dieroll.controllers;
 
 import dieroll.models.DieRoll;
 import dieroll.models.DieRollRequest;

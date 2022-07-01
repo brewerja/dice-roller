@@ -1,16 +1,7 @@
-package dieroll;
+package dieroll.controllers;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Properties;
-
+import dieroll.SettingsConstants;
+import dieroll.models.Settings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -18,6 +9,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Objects;
+import java.util.Properties;
 
 @Controller
 public class SettingsController implements InitializingBean {
@@ -35,18 +33,14 @@ public class SettingsController implements InitializingBean {
         try (InputStream is = new FileInputStream(settingsPath)) {
             p.load(is);
         }
-        if (settings.getColor() != null) {
-            p.put(settings.getName() + "." + SettingsConstants.COLOR, settings.getColor());
+        if (settings.color() != null) {
+            p.put(settings.name() + "." + SettingsConstants.COLOR, settings.color());
             try (OutputStream os = new FileOutputStream(settingsPath)) {
                 p.store(os, null);
             }
         } else {
-            String color = p.getProperty(settings.getName() + "." + SettingsConstants.COLOR);
-            if (color != null) {
-                settings.setColor(color);
-            } else {
-                settings.setColor(SettingsConstants.DEFAULT_COLOR);
-            }
+            String color = p.getProperty(settings.name() + "." + SettingsConstants.COLOR);
+            settings = new Settings(settings.name(), Objects.requireNonNullElse(color, SettingsConstants.DEFAULT_COLOR));
         }
         return settings;
     }
