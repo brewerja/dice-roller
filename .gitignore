@@ -2,12 +2,8 @@
 .repository/ 
 target/
 
-# Eclipse
-.settings/
-.project
-.classpath
-.checkstyle
-bin/
+# IntelliJ
+.idea/
 
 # Dice Roller Transient Files
 /settings.properties
