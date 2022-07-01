@@ -21,51 +21,51 @@ import org.springframework.stereotype.Controller;
 
 @Controller
 public class SettingsController implements InitializingBean {
-	
-	private static final Logger LOG = LoggerFactory.getLogger(SettingsController.class);
 
-	@Value("${settingsPath}")
-	private String settingsPath;
+    private static final Logger LOG = LoggerFactory.getLogger(SettingsController.class);
 
-	@MessageMapping("/settings")
-	@SendTo("/topic/settings")
-	public Settings settings(Settings settings) throws Exception {
-		Properties p = new Properties();
-		createSettingsFileIfNotExisting();
-		try (InputStream is = new FileInputStream(settingsPath)) {
-			p.load(is);
-		}
-		if (settings.getColor() != null) {
-			p.put(settings.getName() + "." + SettingsConstants.COLOR, settings.getColor());
-			try (OutputStream os = new FileOutputStream(settingsPath)) {
-				p.store(os, null);
-			}
-		} else {
-			String color = p.getProperty(settings.getName() + "." + SettingsConstants.COLOR);
-			if (color != null) {
-				settings.setColor(color);
-			} else {
-				settings.setColor(SettingsConstants.DEFAULT_COLOR);
-			}
-		}
-		return settings;
-	}
+    @Value("${settingsPath}")
+    private String settingsPath;
 
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		if(settingsPath == null || settingsPath.isEmpty()){
-			LOG.error("No explicit settings path defined falling back to default.");
-			File userDir = new File(System.getProperty("user.dir"));
-			settingsPath = userDir.toPath().resolve("settings.properties").toAbsolutePath().toString();
-		}
-		LOG.info("Using settings path: " + settingsPath);
-	}
-	
-	private synchronized void createSettingsFileIfNotExisting() throws IOException{
-		Path settingsFile = Paths.get(settingsPath);
-		if(!Files.exists(settingsFile)){
-			Files.createFile(settingsFile);
-		}
-	}
+    @MessageMapping("/settings")
+    @SendTo("/topic/settings")
+    public Settings settings(Settings settings) throws Exception {
+        Properties p = new Properties();
+        createSettingsFileIfNotExisting();
+        try (InputStream is = new FileInputStream(settingsPath)) {
+            p.load(is);
+        }
+        if (settings.getColor() != null) {
+            p.put(settings.getName() + "." + SettingsConstants.COLOR, settings.getColor());
+            try (OutputStream os = new FileOutputStream(settingsPath)) {
+                p.store(os, null);
+            }
+        } else {
+            String color = p.getProperty(settings.getName() + "." + SettingsConstants.COLOR);
+            if (color != null) {
+                settings.setColor(color);
+            } else {
+                settings.setColor(SettingsConstants.DEFAULT_COLOR);
+            }
+        }
+        return settings;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (settingsPath == null || settingsPath.isEmpty()) {
+            LOG.error("No explicit settings path defined falling back to default.");
+            File userDir = new File(System.getProperty("user.dir"));
+            settingsPath = userDir.toPath().resolve("settings.properties").toAbsolutePath().toString();
+        }
+        LOG.info("Using settings path: " + settingsPath);
+    }
+
+    private synchronized void createSettingsFileIfNotExisting() throws IOException {
+        Path settingsFile = Paths.get(settingsPath);
+        if (!Files.exists(settingsFile)) {
+            Files.createFile(settingsFile);
+        }
+    }
 
 }

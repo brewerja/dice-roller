@@ -1,13 +1,13 @@
 package dieroll;
 
 public class DieRoll {
-    
+
     private Integer result;
-    
+
     private Integer numSides;
-    
+
     private String name;
-    
+
     private Boolean privateRoll;
 
     public DieRoll(String name, Integer numSides, Integer result, Boolean isPrivateRoll) {
@@ -16,21 +16,21 @@ public class DieRoll {
         this.name = name;
         this.privateRoll = isPrivateRoll;
     }
-    
+
     public Boolean getPrivateRoll() {
-    	return privateRoll;
+        return privateRoll;
     }
-    
+
     public Integer getResult() {
-		return result;
-	}
+        return result;
+    }
 
     public Integer getNumSides() {
-		return numSides;
-	}
-    
+        return numSides;
+    }
+
     public String getName() {
-		return name;
-	}
+        return name;
+    }
 
 }
