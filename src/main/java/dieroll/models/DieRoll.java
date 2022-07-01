@@ -1,4 +1,4 @@
 package dieroll.models;
 
-public record DieRoll(String name, Integer numSides, Integer result) {
+public record DieRoll(String name, String request, String result) {
 }

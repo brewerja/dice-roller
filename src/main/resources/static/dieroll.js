@@ -10,7 +10,7 @@ function connectRolls() {
 	rollsClient.connect({}, function(frame) {
 		rollsClient.subscribe('/topic/rolls', function(dieRoll) {
 			showRoll(JSON.parse(dieRoll.body).name,
-					JSON.parse(dieRoll.body).numSides,
+					JSON.parse(dieRoll.body).request,
 					JSON.parse(dieRoll.body).result);
 		});
 	});
@@ -88,12 +88,12 @@ function makeName(name, charName) {
 	return charName + ' (' + name + ')'
 }
 
-function roll(numSides) {
+function roll(request) {
 	name = $("#name").val();
 	charName = $("#char").val();
 	rollsClient.send("/app/roll", {}, JSON.stringify({
 		'name' : makeName(name, charName),
-		'numSides' : numSides
+		'request' : request
 	}));
 }
 
@@ -167,7 +167,7 @@ function showMessage(name, message) {
 	rollContainer.scrollTop = rollContainer.scrollHeight;
 }
 
-function showRoll(name, numSides, result) {
+function showRoll(name, request, result) {
 	var response = document.getElementById('response');
 	var dl;
 	var lastRollerName;
@@ -180,7 +180,8 @@ function showRoll(name, numSides, result) {
 	var myName = $('#name').val()
 	var myCharName = $('#char').val()
 	dd.style.color = stringToColorCode(name);
-    dd.appendChild(document.createTextNode('d' + numSides + ' : ' + result));
+	requestString = request.split(",").map((n) => 'd' + n);
+    dd.appendChild(document.createTextNode(requestString + ' : ' + result));
 	if (lastRollerName == name) {
 		dd.style.color = stringToColorCode(name);
 		dl.append(dd);

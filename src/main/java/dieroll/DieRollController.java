@@ -1,13 +1,15 @@
 package dieroll;
 
-import java.util.Random;
-
 import dieroll.models.DieRoll;
 import dieroll.models.DieRollRequest;
 import dieroll.models.Message;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
+
+import java.util.Arrays;
+import java.util.Random;
+import java.util.stream.Collectors;
 
 @Controller
 public class DieRollController {
@@ -17,8 +19,11 @@ public class DieRollController {
     @MessageMapping("/roll")
     @SendTo("/topic/rolls")
     public DieRoll roll(DieRollRequest dieRollRequest) throws Exception {
-        Integer result = RANDOM.nextInt(dieRollRequest.numSides()) + 1;
-        return new DieRoll(dieRollRequest.name(), dieRollRequest.numSides(), result);
+        String result = Arrays.stream(dieRollRequest.request().split(","))
+                .map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1)
+                .map(Object::toString)
+                .collect(Collectors.joining(","));
+        return new DieRoll(dieRollRequest.name(), dieRollRequest.request(), result);
     }
 
     @MessageMapping("/message")
