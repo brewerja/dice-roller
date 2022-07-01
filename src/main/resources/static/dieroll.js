@@ -11,8 +11,7 @@ function connectRolls() {
 		rollsClient.subscribe('/topic/rolls', function(dieRoll) {
 			showRoll(JSON.parse(dieRoll.body).name,
 					JSON.parse(dieRoll.body).numSides,
-					JSON.parse(dieRoll.body).result,
-					JSON.parse(dieRoll.body).privateRoll);
+					JSON.parse(dieRoll.body).result);
 		});
 	});
 }
@@ -92,11 +91,9 @@ function makeName(name, charName) {
 function roll(numSides) {
 	name = $("#name").val();
 	charName = $("#char").val();
-	isPrivate = $('#isPrivate').prop('checked');
 	rollsClient.send("/app/roll", {}, JSON.stringify({
 		'name' : makeName(name, charName),
-		'numSides' : numSides,
-		'privateRoll' : isPrivate
+		'numSides' : numSides
 	}));
 }
 
@@ -170,7 +167,7 @@ function showMessage(name, message) {
 	rollContainer.scrollTop = rollContainer.scrollHeight;
 }
 
-function showRoll(name, numSides, result, isPrivate) {
+function showRoll(name, numSides, result) {
 	var response = document.getElementById('response');
 	var dl;
 	var lastRollerName;
@@ -183,13 +180,7 @@ function showRoll(name, numSides, result, isPrivate) {
 	var myName = $('#name').val()
 	var myCharName = $('#char').val()
 	dd.style.color = stringToColorCode(name);
-	if (!isPrivate) {
-		dd.appendChild(document.createTextNode('d' + numSides + ' : ' + result));
-	} else if (isPrivate && name == makeName(myName, myCharName)) {
-		dd.appendChild(document.createTextNode('d' + numSides + ' : ' + result + ' (geheim)'));
-	} else {
-		dd.appendChild(document.createTextNode('geheimer Wurf'));
-	}
+    dd.appendChild(document.createTextNode('d' + numSides + ' : ' + result));
 	if (lastRollerName == name) {
 		dd.style.color = stringToColorCode(name);
 		dl.append(dd);

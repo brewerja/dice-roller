@@ -2,6 +2,9 @@ package dieroll;
 
 import java.util.Random;
 
+import dieroll.models.DieRoll;
+import dieroll.models.DieRollRequest;
+import dieroll.models.Message;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
@@ -9,14 +12,13 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class DieRollController {
 
-    private static Random random = new Random();
+    private static final Random RANDOM = new Random();
 
     @MessageMapping("/roll")
     @SendTo("/topic/rolls")
     public DieRoll roll(DieRollRequest dieRollRequest) throws Exception {
-        Integer result = random.nextInt(dieRollRequest.getNumSides()) + 1;
-        return new DieRoll(dieRollRequest.getName(), dieRollRequest.getNumSides(), result,
-                dieRollRequest.getPrivateRoll());
+        Integer result = RANDOM.nextInt(dieRollRequest.numSides()) + 1;
+        return new DieRoll(dieRollRequest.name(), dieRollRequest.numSides(), result);
     }
 
     @MessageMapping("/message")
