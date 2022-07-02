@@ -10,6 +10,7 @@ function connectRolls() {
 	rollsClient.connect({}, function(frame) {
 		rollsClient.subscribe('/topic/rolls', function(dieRoll) {
 			showRoll(JSON.parse(dieRoll.body).name,
+					JSON.parse(dieRoll.body).timestamp,
 					JSON.parse(dieRoll.body).request,
 					JSON.parse(dieRoll.body).result);
 		});
@@ -122,7 +123,7 @@ function stringToColorCode(str) {
 		settingsClient.send("/app/settings", {}, JSON.stringify({
 			'name' : str
 		}));
-		
+
 	}
 	var color = color_codes[str]
 	var myName = $("#name").val();
@@ -167,7 +168,7 @@ function showMessage(name, message) {
 	rollContainer.scrollTop = rollContainer.scrollHeight;
 }
 
-function showRoll(name, request, result) {
+function showRoll(name, timestamp, request, result) {
 	var response = document.getElementById('response');
 	var dl;
 	var lastRollerName;
@@ -181,7 +182,8 @@ function showRoll(name, request, result) {
 	var myCharName = $('#char').val()
 	dd.style.color = stringToColorCode(name);
 	requestString = request.split(",").map((n) => 'd' + n);
-    dd.appendChild(document.createTextNode(requestString + ' : ' + result));
+	var dateString = new Date(timestamp).toLocaleString('en-US', { hour12: true });
+    dd.appendChild(document.createTextNode(dateString + " " + requestString + ' : ' + result));
 	if (lastRollerName == name) {
 		dd.style.color = stringToColorCode(name);
 		dl.append(dd);

@@ -7,6 +7,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -23,7 +24,7 @@ public class DieRollController {
                 .map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1)
                 .map(Object::toString)
                 .collect(Collectors.joining(","));
-        return new DieRoll(dieRollRequest.name(), dieRollRequest.request(), result);
+        return new DieRoll(dieRollRequest.name(), Instant.now().toEpochMilli(), dieRollRequest.request(), result);
     }
 
     @MessageMapping("/message")
