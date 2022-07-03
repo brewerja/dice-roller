@@ -48,6 +48,6 @@ public class DieRollController {
     @GetMapping("/rooms/{roomId}")
     public ModelAndView rooms(@PathVariable String roomId, Model model) {
         model.addAttribute("roomId", roomId);
-        return new ModelAndView("index");
+        return new ModelAndView("room");
     }
 }
