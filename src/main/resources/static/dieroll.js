@@ -2,7 +2,6 @@ var stompClient;
 var messagesClient;
 
 var PLAYER_NAME_KEY = "playerName";
-var CHAR_NAME_KEY = "characterName";
 
 function connectRolls() {
 	var socket = new SockJS('/roll');
@@ -15,23 +14,6 @@ function connectRolls() {
 					JSON.parse(dieRoll.body).result);
 		});
 	});
-}
-
-var color_codes = {};
-function connectSettings() {
-	var socket = new SockJS('/settings');
-	settingsClient = Stomp.over(socket);
-	try {
-		settingsClient.connect({}, function(frame) {
-			settingsClient.subscribe('/topic/settings', function(settings) {
-				color_codes[JSON.parse(settings.body).name] = JSON
-						.parse(settings.body).color;
-			});
-		});
-	} catch (e) {
-
-	}
-
 }
 
 function connectMessages() {
@@ -54,17 +36,11 @@ function initializeNames() {
 	if(localStorage.getItem(PLAYER_NAME_KEY)) {
 		$('#name').val(localStorage.getItem(PLAYER_NAME_KEY));
 	}
-	if(localStorage.getItem(CHAR_NAME_KEY)) {
-		$('#char').val(localStorage.getItem(CHAR_NAME_KEY));
-	}
 }
 
 function addNameSaveHandlers() {
 	$('#name').change(function(){
 		localStorage.setItem(PLAYER_NAME_KEY, $('#name').val());
-	});
-	$('#char').change(function(){
-		localStorage.setItem(CHAR_NAME_KEY, $('#char').val());
 	});
 }
 
@@ -74,28 +50,12 @@ $(document).ready(
 			addNameSaveHandlers();
 			connectRolls();
 			connectMessages();
-			connectSettings();
-            name = $("#name").val();
-			charName = $("#char").val();
-			$('#colorselector').colorselector({
-				callback : function(value, color, title) {
-					settingsClient.send("/app/settings", {}, JSON.stringify({
-						'name' : makeName(name, charName),
-						'color' : color
-					}));
-				}
-			});
 		});
-
-function makeName(name, charName) {
-	return charName + ' (' + name + ')'
-}
 
 function roll(request) {
 	name = $("#name").val();
-	charName = $("#char").val();
 	rollsClient.send("/app/roll/" + roomId, {}, JSON.stringify({
-		'name' : makeName(name, charName),
+		'name' : name,
 		'request' : request
 	}));
 }
@@ -112,28 +72,11 @@ $(document).ready(function() {
 function talk() {
 	message = $("#message").val();
 	name = $("#name").val();
-	charName = $("#char").val();
 	messagesClient.send("/app/message", {}, JSON.stringify({
-		'name' : makeName(name, charName),
+		'name' : name,
 		'message' : message,
 	}));
 	$("#message").val("");
-}
-
-function stringToColorCode(str) {
-	if (!(str in color_codes)) {
-		settingsClient.send("/app/settings", {}, JSON.stringify({
-			'name' : str
-		}));
-
-	}
-	var color = color_codes[str]
-	var myName = $("#name").val();
-	var myChar = $("#char").val();
-	if (str == makeName(myName, myChar) && color != $("#colorselector option:selected").attr("data-color")) {
-		$("#colorselector").colorselector("setColor", color);
-	}
-	return color;
 }
 
 function showMessage(name, message) {
@@ -147,7 +90,6 @@ function showMessage(name, message) {
 	var dd = document.createElement('dd');
 
 	dd.appendChild(document.createTextNode(message));
-	dd.style.color = stringToColorCode(name);
 
 	if (lastRollerName == name) {
 		dl.append(dd);
@@ -155,15 +97,12 @@ function showMessage(name, message) {
 		var p = document.createElement('p');
 		p.style.wordWrap = 'break-word';
 		var dl = document.createElement('dl');
-		dl.style.color = stringToColorCode(name);
 		var dt = document.createElement('dt');
 		dt.appendChild(document.createTextNode(name));
-		dt.style.color = stringToColorCode(name);
 
 		dl.appendChild(dt);
 		dl.appendChild(dd);
 		p.appendChild(dl);
-		p.style.color = stringToColorCode(name);
 		response.appendChild(p);
 	}
 	var rollContainer = document.getElementById('rollContainer');
@@ -181,27 +120,21 @@ function showRoll(name, timestamp, request, result) {
 	var dd = document.createElement('dd');
 	$(dd).css('font-style', 'italic');
 	var myName = $('#name').val()
-	var myCharName = $('#char').val()
-	dd.style.color = stringToColorCode(name);
 	requestString = request.split(",").map((n) => 'd' + n);
 	var dateString = new Date(timestamp).toLocaleString('en-US', { hour12: true });
     dd.appendChild(document.createTextNode(dateString + " " + requestString + ' : ' + result));
 	if (lastRollerName == name) {
-		dd.style.color = stringToColorCode(name);
 		dl.append(dd);
 	} else {
 		var p = document.createElement('p');
 		p.style.wordWrap = 'break-word';
 		var dl = document.createElement('dl');
-		dl.style.color = stringToColorCode(name);
 		var dt = document.createElement('dt');
-		dt.style.color = stringToColorCode(name);
 		dt.appendChild(document.createTextNode(name));
 
 		dl.appendChild(dt);
 		dl.appendChild(dd);
 		p.appendChild(dl);
-		p.style.color = stringToColorCode(name);
 		response.appendChild(p);
 	}
 	var rollContainer = document.getElementById('rollContainer');
