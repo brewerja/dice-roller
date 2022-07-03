@@ -1,7 +1,7 @@
 package dieroll.controllers;
 
-import dieroll.models.DieRoll;
-import dieroll.models.DieRollRequest;
+import dieroll.models.Roll;
+import dieroll.models.RollRequest;
 import dieroll.models.Message;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -21,22 +21,22 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Controller
-public class DieRollController {
+public class RollController {
 
     private static final Random RANDOM = new Random();
     private static final Pattern ROLL_PATTERN = Pattern.compile("^[\\d,]{1,60}$");
 
     @MessageMapping("/roll/{roomId}")
     @SendTo("/topic/rolls/{roomId}")
-    public DieRoll roll(@DestinationVariable String roomId, DieRollRequest dieRollRequest) {
-        if (!ROLL_PATTERN.matcher(dieRollRequest.request()).matches())
+    public Roll roll(@DestinationVariable String roomId, RollRequest rollRequest) {
+        if (!ROLL_PATTERN.matcher(rollRequest.request()).matches())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad roll string");
-        String result = Arrays.stream(dieRollRequest.request().split(","))
+        String result = Arrays.stream(rollRequest.request().split(","))
                 .filter(s -> !s.isEmpty())
                 .map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1)
                 .map(Object::toString)
                 .collect(Collectors.joining(","));
-        return new DieRoll(dieRollRequest.name(), Instant.now().toEpochMilli(), dieRollRequest.request(), result);
+        return new Roll(rollRequest.name(), Instant.now().toEpochMilli(), rollRequest.request(), result);
     }
 
     @MessageMapping("/message/{roomId}")
