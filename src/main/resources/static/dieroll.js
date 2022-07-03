@@ -21,7 +21,7 @@ function connectMessages() {
 	messagesClient = Stomp.over(socket);
 	try {
 		messagesClient.connect({}, function(frame) {
-			messagesClient.subscribe('/topic/messages', function(dieRoll) {
+			messagesClient.subscribe('/topic/messages/' + roomId, function(dieRoll) {
 				showMessage(JSON.parse(dieRoll.body).name, JSON
 						.parse(dieRoll.body).message);
 			});
@@ -72,7 +72,7 @@ $(document).ready(function() {
 function talk() {
 	message = $("#message").val();
 	name = $("#name").val();
-	messagesClient.send("/app/message", {}, JSON.stringify({
+	messagesClient.send("/app/message/" + roomId, {}, JSON.stringify({
 		'name' : name,
 		'message' : message,
 	}));

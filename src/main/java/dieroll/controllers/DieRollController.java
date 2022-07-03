@@ -39,9 +39,9 @@ public class DieRollController {
         return new DieRoll(dieRollRequest.name(), Instant.now().toEpochMilli(), dieRollRequest.request(), result);
     }
 
-    @MessageMapping("/message")
-    @SendTo("/topic/messages")
-    public Message talk(Message message) {
+    @MessageMapping("/message/{roomId}")
+    @SendTo("/topic/messages/{roomId}")
+    public Message talk(@DestinationVariable String roomId, Message message) {
         return message;
     }
 
