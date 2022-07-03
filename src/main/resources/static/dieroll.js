@@ -8,7 +8,7 @@ function connectRolls() {
 	var socket = new SockJS('/roll');
 	rollsClient = Stomp.over(socket);
 	rollsClient.connect({}, function(frame) {
-		rollsClient.subscribe('/topic/rolls', function(dieRoll) {
+		rollsClient.subscribe('/topic/rolls/' + roomId, function(dieRoll) {
 			showRoll(JSON.parse(dieRoll.body).name,
 					JSON.parse(dieRoll.body).timestamp,
 					JSON.parse(dieRoll.body).request,
@@ -75,6 +75,8 @@ $(document).ready(
 			connectRolls();
 			connectMessages();
 			connectSettings();
+            name = $("#name").val();
+			charName = $("#char").val();
 			$('#colorselector').colorselector({
 				callback : function(value, color, title) {
 					settingsClient.send("/app/settings", {}, JSON.stringify({
@@ -92,7 +94,7 @@ function makeName(name, charName) {
 function roll(request) {
 	name = $("#name").val();
 	charName = $("#char").val();
-	rollsClient.send("/app/roll", {}, JSON.stringify({
+	rollsClient.send("/app/roll/" + roomId, {}, JSON.stringify({
 		'name' : makeName(name, charName),
 		'request' : request
 	}));
