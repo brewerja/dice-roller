@@ -4,8 +4,6 @@ import dieroll.models.Message;
 import dieroll.models.Roll;
 import dieroll.models.RollRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -16,6 +14,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -30,7 +30,7 @@ public class RollController {
     private static final Pattern ROLL_PATTERN = Pattern.compile("^[\\d,]{1,60}$");
 
     @Autowired
-    JedisConnectionFactory jedisConnectionFactory;
+    JedisPool jedisPool;
 
     @MessageMapping("/roll/{roomId}")
     @SendTo("/topic/rolls/{roomId}")
@@ -48,8 +48,8 @@ public class RollController {
     }
 
     private void persistRollToRedis(Roll roll) {
-        try (RedisConnection redis = jedisConnectionFactory.getConnection()) {
-            redis.zSetCommands().zAdd(roll.roomId().getBytes(), roll.timestamp(), roll.getBytes());
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.zadd(roll.roomId().getBytes(), roll.timestamp(), roll.getBytes());
         }
     }
 
