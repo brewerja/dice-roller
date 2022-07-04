@@ -6,6 +6,7 @@
     var roomId = "[[${roomId}]]";
 
 
+
     </script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"
             integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
@@ -22,6 +23,7 @@
 
     <style>
 	div.rollContainer {overflow-y : scroll; height : 60vh}
+
 
 
     </style>
@@ -55,8 +57,8 @@
             </div>
         </form>
         <div id="rollContainer" class="rollContainer">
-            <ul>
-                <li th:each="roll: ${savedRolls}" th:title=${roll.timestamp}
+            <ul class="list-group-item">
+                <li class="list-group-item" th:each="roll: ${savedRolls}" th:title=${roll.timestamp}
                     th:text="|${roll.name} ${roll.request}: ${roll.result}|"></li>
             </ul>
         </div>
