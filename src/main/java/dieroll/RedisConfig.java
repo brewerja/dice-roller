@@ -14,7 +14,7 @@ public class RedisConfig {
 
     @Bean
     JedisConnectionFactory jedisConnectionFactory() {
-        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(REDIS_URL, 6379);
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(REDIS_URL);
         return new JedisConnectionFactory(config);
     }
 
