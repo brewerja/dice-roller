@@ -51,7 +51,16 @@ $(document).ready(
 			connectRolls();
 			connectMessages();
 			scrollTop();
+			formatPriorRolls();
 		});
+
+function formatPriorRolls() {
+    $('#rollContainer').find('li').each(function (i, v) {v.title = formatTimestamp(Number(v.title))});
+}
+
+function formatTimestamp(timestamp) {
+	return new Date(timestamp).toLocaleString('en-US', { hour12: true });
+}
 
 function roll(request) {
 	name = $("#name").val();
@@ -96,8 +105,8 @@ function showMessage(name, message) {
 function showRoll(name, timestamp, request, result) {
 	var ul = $('#rollContainer').find("ul").last();
 	var li = document.createElement('li');
-	var dateString = new Date(timestamp).toLocaleString('en-US', { hour12: true });
-    li.appendChild(document.createTextNode(name + " " + dateString + " " + request + ' : ' + result));
+    li.appendChild(document.createTextNode(name + " " + request + ' : ' + result));
+    li.title = formatTimestamp(timestamp)
     ul.append(li);
     scrollTop();
 }
