@@ -19,7 +19,9 @@ import redis.clients.jedis.JedisPool;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -37,11 +39,7 @@ public class RollController {
     public Roll roll(@DestinationVariable String roomId, RollRequest rollRequest) {
         if (!ROLL_PATTERN.matcher(rollRequest.request()).matches())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad roll string");
-        String result = Arrays.stream(rollRequest.request().split(","))
-                .filter(s -> !s.isEmpty())
-                .map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1)
-                .map(Object::toString)
-                .collect(Collectors.joining(","));
+        String result = Arrays.stream(rollRequest.request().split(",")).filter(s -> !s.isEmpty()).map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1).map(Object::toString).collect(Collectors.joining(","));
         Roll roll = new Roll(roomId, rollRequest.name(), Instant.now().toEpochMilli(), rollRequest.request(), result);
         persistRollToRedis(roll);
         return roll;
@@ -50,6 +48,13 @@ public class RollController {
     private void persistRollToRedis(Roll roll) {
         try (Jedis jedis = jedisPool.getResource()) {
             jedis.zadd(roll.roomId().getBytes(), roll.timestamp(), roll.getBytes());
+        }
+    }
+
+    private List<Roll> getRoomRolls(String roomId) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            Set<String> stringRolls = jedis.zrange(roomId, -10, -1);
+            return stringRolls.stream().map(r -> Roll.getRollFromRedisValue(roomId, r)).collect(Collectors.toList());
         }
     }
 
@@ -62,6 +67,7 @@ public class RollController {
     @GetMapping("/rooms/{roomId}")
     public ModelAndView rooms(@PathVariable String roomId, Model model) {
         model.addAttribute("roomId", roomId);
+        model.addAttribute("savedRolls", getRoomRolls(roomId));
         return new ModelAndView("room");
     }
 }

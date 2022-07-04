@@ -2,8 +2,6 @@ package dieroll.models;
 
 import lombok.Builder;
 
-import java.util.Arrays;
-
 @Builder
 public record Roll(String roomId, String name, long timestamp, String request, String result) {
 
@@ -11,8 +9,8 @@ public record Roll(String roomId, String name, long timestamp, String request, S
         return String.join("|", String.valueOf(timestamp), name, request, result).getBytes();
     }
 
-    public static Roll getRollFromByteArray(String roomId, byte[] redisValue) {
-        String[] parts = Arrays.toString(redisValue).split("\\|");
+    public static Roll getRollFromRedisValue(String roomId, String redisValue) {
+        String[] parts = redisValue.split("\\|");
         return new RollBuilder()
                 .roomId(roomId)
                 .timestamp(Long.parseLong(parts[0]))

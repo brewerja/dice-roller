@@ -110,33 +110,19 @@ function showMessage(name, message) {
 }
 
 function showRoll(name, timestamp, request, result) {
-	var response = document.getElementById('response');
-	var dl;
-	var lastRollerName;
-	if ($(response).find("p").length > 0) {
-		dl = $(response).find("p").last().find("dl").first();
-		lastRollerName = dl.find("dt").first().text();
+	var rollContainer = document.getElementById('rollContainer');
+	var ul;
+	if ($(rollContainer).find("ul").length == 0) {
+	    ul = document.createElement('ul');
+	    rollContainer.appendChild(ul);
+	} else {
+		ul = $(rollContainer).find("ul").last();
 	}
-	var dd = document.createElement('dd');
-	$(dd).css('font-style', 'italic');
-	var myName = $('#name').val()
+	var li = document.createElement('li');
 	requestString = request.split(",").map((n) => 'd' + n);
 	var dateString = new Date(timestamp).toLocaleString('en-US', { hour12: true });
-    dd.appendChild(document.createTextNode(dateString + " " + requestString + ' : ' + result));
-	if (lastRollerName == name) {
-		dl.append(dd);
-	} else {
-		var p = document.createElement('p');
-		p.style.wordWrap = 'break-word';
-		var dl = document.createElement('dl');
-		var dt = document.createElement('dt');
-		dt.appendChild(document.createTextNode(name));
-
-		dl.appendChild(dt);
-		dl.appendChild(dd);
-		p.appendChild(dl);
-		response.appendChild(p);
-	}
+    li.appendChild(document.createTextNode(name + " " + dateString + " " + requestString + ' : ' + result));
+    ul.append(li);
 	var rollContainer = document.getElementById('rollContainer');
 	rollContainer.scrollTop = rollContainer.scrollHeight;
 }
