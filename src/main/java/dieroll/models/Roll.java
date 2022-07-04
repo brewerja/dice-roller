@@ -2,6 +2,9 @@ package dieroll.models;
 
 import lombok.Builder;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 @Builder
 public record Roll(String roomId, String name, long timestamp, String request, String result) {
 

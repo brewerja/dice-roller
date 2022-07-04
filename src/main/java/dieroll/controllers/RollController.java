@@ -40,7 +40,7 @@ public class RollController {
         if (!ROLL_PATTERN.matcher(rollRequest.request()).matches())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad roll string");
         String result = Arrays.stream(rollRequest.request().split(",")).filter(s -> !s.isEmpty()).map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1).map(Object::toString).collect(Collectors.joining(","));
-        Roll roll = new Roll(roomId, rollRequest.name(), Instant.now().toEpochMilli(), rollRequest.request(), result);
+        Roll roll = new Roll(roomId, rollRequest.name(), Instant.now().toEpochMilli(), rollRequest.getRequestDisplay(), result);
         persistRollToRedis(roll);
         return roll;
     }
@@ -53,7 +53,7 @@ public class RollController {
 
     private List<Roll> getRoomRolls(String roomId) {
         try (Jedis jedis = jedisPool.getResource()) {
-            Set<String> stringRolls = jedis.zrange(roomId, -10, -1);
+            Set<String> stringRolls = jedis.zrange(roomId, -100, -1);
             return stringRolls.stream().map(r -> Roll.getRollFromRedisValue(roomId, r)).collect(Collectors.toList());
         }
     }

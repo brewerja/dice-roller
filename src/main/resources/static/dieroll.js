@@ -50,6 +50,7 @@ $(document).ready(
 			addNameSaveHandlers();
 			connectRolls();
 			connectMessages();
+			scrollTop();
 		});
 
 function roll(request) {
@@ -79,50 +80,24 @@ function talk() {
 	$("#message").val("");
 }
 
-function showMessage(name, message) {
-	var response = document.getElementById('response');
-	var dl;
-	var lastRollerName;
-	if ($(response).find("p").length > 0) {
-		dl = $(response).find("p").last().find("dl").first();
-		lastRollerName = dl.find("dt").first().text();
-	}
-	var dd = document.createElement('dd');
-
-	dd.appendChild(document.createTextNode(message));
-
-	if (lastRollerName == name) {
-		dl.append(dd);
-	} else {
-		var p = document.createElement('p');
-		p.style.wordWrap = 'break-word';
-		var dl = document.createElement('dl');
-		var dt = document.createElement('dt');
-		dt.appendChild(document.createTextNode(name));
-
-		dl.appendChild(dt);
-		dl.appendChild(dd);
-		p.appendChild(dl);
-		response.appendChild(p);
-	}
+function scrollTop() {
 	var rollContainer = document.getElementById('rollContainer');
 	rollContainer.scrollTop = rollContainer.scrollHeight;
 }
 
-function showRoll(name, timestamp, request, result) {
-	var rollContainer = document.getElementById('rollContainer');
-	var ul;
-	if ($(rollContainer).find("ul").length == 0) {
-	    ul = document.createElement('ul');
-	    rollContainer.appendChild(ul);
-	} else {
-		ul = $(rollContainer).find("ul").last();
-	}
+function showMessage(name, message) {
+	var ul = $('#rollContainer').find("ul").last();
 	var li = document.createElement('li');
-	requestString = request.split(",").map((n) => 'd' + n);
-	var dateString = new Date(timestamp).toLocaleString('en-US', { hour12: true });
-    li.appendChild(document.createTextNode(name + " " + dateString + " " + requestString + ' : ' + result));
+    li.appendChild(document.createTextNode(name + ": " + message));
     ul.append(li);
-	var rollContainer = document.getElementById('rollContainer');
-	rollContainer.scrollTop = rollContainer.scrollHeight;
+    scrollTop();
+}
+
+function showRoll(name, timestamp, request, result) {
+	var ul = $('#rollContainer').find("ul").last();
+	var li = document.createElement('li');
+	var dateString = new Date(timestamp).toLocaleString('en-US', { hour12: true });
+    li.appendChild(document.createTextNode(name + " " + dateString + " " + request + ' : ' + result));
+    ul.append(li);
+    scrollTop();
 }

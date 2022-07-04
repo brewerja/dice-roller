@@ -54,7 +54,7 @@
         </form>
         <div id="rollContainer" class="rollContainer">
             <ul>
-                <li th:each="roll: ${savedRolls}" th:text="|${roll.name} ${roll.timestamp} ${roll.result}|"></li>
+                <li th:each="roll: ${savedRolls}" th:text="|${roll.name} ${roll.timestamp} ${roll.request}: ${roll.result}|"></li>
             </ul>
         </div>
         <hr/>
