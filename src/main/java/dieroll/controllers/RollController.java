@@ -1,8 +1,11 @@
 package dieroll.controllers;
 
+import dieroll.models.Message;
 import dieroll.models.Roll;
 import dieroll.models.RollRequest;
-import dieroll.models.Message;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -26,6 +29,9 @@ public class RollController {
     private static final Random RANDOM = new Random();
     private static final Pattern ROLL_PATTERN = Pattern.compile("^[\\d,]{1,60}$");
 
+    @Autowired
+    JedisConnectionFactory jedisConnectionFactory;
+
     @MessageMapping("/roll/{roomId}")
     @SendTo("/topic/rolls/{roomId}")
     public Roll roll(@DestinationVariable String roomId, RollRequest rollRequest) {
@@ -36,7 +42,15 @@ public class RollController {
                 .map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1)
                 .map(Object::toString)
                 .collect(Collectors.joining(","));
-        return new Roll(rollRequest.name(), Instant.now().toEpochMilli(), rollRequest.request(), result);
+        Roll roll = new Roll(roomId, rollRequest.name(), Instant.now().toEpochMilli(), rollRequest.request(), result);
+        persistRollToRedis(roll);
+        return roll;
+    }
+
+    private void persistRollToRedis(Roll roll) {
+        try (RedisConnection redis = jedisConnectionFactory.getConnection()) {
+            redis.zSetCommands().zAdd(roll.roomId().getBytes(), roll.timestamp(), roll.getBytes());
+        }
     }
 
     @MessageMapping("/message/{roomId}")

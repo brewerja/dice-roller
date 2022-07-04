@@ -4,6 +4,3 @@ target/
 
 # IntelliJ
 .idea/
-
-# Dice Roller Transient Files
-/settings.properties
