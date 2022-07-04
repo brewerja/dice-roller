@@ -105,7 +105,7 @@ function showMessage(name, message) {
 function showRoll(name, timestamp, request, result) {
 	var ul = $('#rollContainer').find("ul").last();
 	var li = document.createElement('li');
-    li.appendChild(document.createTextNode(name + " " + request + ' : ' + result));
+    li.appendChild(document.createTextNode(name + " " + request + ': ' + result));
     li.title = formatTimestamp(timestamp)
     ul.append(li);
     scrollTop();

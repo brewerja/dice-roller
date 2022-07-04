@@ -17,6 +17,7 @@ import org.springframework.web.servlet.ModelAndView;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 @Controller
 public class RollController {
 
-    private static final Random RANDOM = new Random();
+    private static final SecureRandom RANDOM = new SecureRandom();
     private static final Pattern ROLL_PATTERN = Pattern.compile("^[\\d,]{1,60}$");
 
     @Autowired
@@ -39,7 +40,11 @@ public class RollController {
     public Roll roll(@DestinationVariable String roomId, RollRequest rollRequest) {
         if (!ROLL_PATTERN.matcher(rollRequest.request()).matches())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad roll string");
-        String result = Arrays.stream(rollRequest.request().split(",")).filter(s -> !s.isEmpty()).map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1).map(Object::toString).collect(Collectors.joining(","));
+        String result = Arrays.stream(rollRequest.request().split(","))
+                .filter(s -> !s.isEmpty())
+                .map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1)
+                .map(Object::toString)
+                .collect(Collectors.joining(","));
         Roll roll = new Roll(roomId, rollRequest.name(), Instant.now().toEpochMilli(), rollRequest.getRequestDisplay(), result);
         persistRollToRedis(roll);
         return roll;
