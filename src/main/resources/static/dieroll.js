@@ -107,6 +107,7 @@ function showRoll(name, timestamp, request, result) {
 
     var newLi = ul.find("li").last().clone()
     newLi.prop("title", formatTimestamp(timestamp));
+    newLi.prop("class", "list-group-item list-group-item-primary")
     newLi.children("span").eq(0).text(name);
     newLi.children("span").eq(1).text(request);
     newLi.children("span").eq(2).text(result);

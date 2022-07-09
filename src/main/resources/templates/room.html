@@ -38,8 +38,8 @@
         Javascript! Websocket relies on Javascript being enabled. Please
         enable Javascript and reload this page!</h2>
 </noscript>
-<h1 th:text="${roomId}"></h1>
 <div class="container">
+    <h1 th:inline="text">Room: [[${roomId}]]</h1>
     <div class="row mb-3">
         <form class="form-inline">
             <div class="input-group input-group-lg mb-3">
