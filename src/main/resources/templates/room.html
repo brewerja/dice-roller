@@ -19,7 +19,7 @@
     <script th:src="@{/dieroll.js}"></script>
 
     <style>
-    div#rollContainer { overflow-y : scroll; height : 60vh}
+    div#rollContainer { overflow-y : scroll; height : calc(100vh - 298px);}
     html {font-size: 1.5rem;}
     </style>
 
@@ -36,27 +36,27 @@
 </noscript>
 <div class="container-sm">
     <h1 th:inline="text">Room: [[${roomId}]]</h1>
-    <div class="row mb-3">
-        <form class="form-inline">
-            <div class="input-group input-group-lg mb-3">
-                <input type="text" class="form-control" id="name" placeholder="Name"></input>
+    <div class="row">
+        <div class="input-group input-group-lg">
+            <div class="input-group-prepend">
+                <div class="btn-toolbar" role="toolbar">
+                    <div class="btn-group btn-group-lg me-2">
+                        <button id="roll2d6" onclick="roll('6,6');" type="button" class="btn btn-outline-primary">
+                            d6,d6
+                        </button>
+                    </div>
+                    <div class="btn-group btn-group-lg me-2">
+                        <button id="roll20" onclick="roll('20');" type="button" class="btn btn-outline-primary">d20
+                        </button>
+                    </div>
+                    <div class="btn-group btn-group-lg me-2">
+                        <button id="roll6" onclick="roll('6');" type="button" class="btn btn-outline-primary">d6
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="btn-toolbar" role="toolbar">
-                <div class="btn-group btn-group-lg me-2">
-                    <button id="roll2d6" onclick="roll('6,6');" type="button" class="btn btn-outline-primary">
-                        d6,d6
-                    </button>
-                </div>
-                <div class="btn-group btn-group-lg me-2">
-                    <button id="roll20" onclick="roll('20');" type="button" class="btn btn-outline-primary">d20
-                    </button>
-                </div>
-                <div class="btn-group btn-group-lg ">
-                    <button id="roll6" onclick="roll('6');" type="button" class="btn btn-outline-primary">d6
-                    </button>
-                </div>
-            </div>
-        </form>
+            <input type="text" class="form-control rounded" id="name" placeholder="Name"></input>
+        </div>
     </div>
     <div class="my-3 border rounded" id="rollContainer">
         <ul class="list-group">
@@ -70,7 +70,7 @@
     <div class="form-group">
         <div class="input-group input-group-lg">
             <label class="me-2" for="message">Message:</label>
-            <input type="text" class="form-control" id="message">
+            <input type="text" class="form-control rounded" id="message">
         </div>
     </div>
 </div>
