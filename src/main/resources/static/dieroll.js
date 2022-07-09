@@ -104,16 +104,11 @@ function showMessage(name, message) {
 
 function showRoll(name, timestamp, request, result) {
 	var ul = $('#rollContainer').find("ul").last();
-
-    var newLi = ul.find("li").last().clone()
-    newLi.prop("title", formatTimestamp(timestamp));
-    newLi.prop("class", "list-group-item list-group-item-primary")
-    newLi.children("span").eq(0).text(name);
-    newLi.children("span").eq(1).text(request);
-    newLi.children("span").eq(2).text(result);
-
     ul.find("li").last().attr("class", "list-group-item");
-
-    ul.append(newLi);
+    ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(timestamp)}">
+               <span class="me-2">${name}</span>
+               <span class="badge bg-primary rounded-pill me-2">${request}</span>
+               <span>${result}</span>
+               </li>`);
     scrollTop();
 }
