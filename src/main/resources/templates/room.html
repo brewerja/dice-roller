@@ -58,7 +58,7 @@
             </div>
         </form>
     </div>
-    <div class="my-3" id="rollContainer">
+    <div class="my-3 border rounded" id="rollContainer">
         <ul class="list-group">
             <li class="list-group-item" th:each="roll: ${savedRolls}" th:title=${roll.timestamp} th:inline="text">
                 <span class="me-2" th:text="${roll.name}"></span>
