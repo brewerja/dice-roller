@@ -65,15 +65,15 @@
     <div class="my-3" id="rollContainer">
         <ul class="list-group">
             <li class="list-group-item" th:each="roll: ${savedRolls}" th:title=${roll.timestamp} th:inline="text">
-                [[${roll.name}]]
-                <span class="badge bg-primary rounded-pill" th:inline="text">[[${roll.request}]]</span>
-                <b>[[${roll.result}]]</b>
+                <span class="me-2" th:text="${roll.name}"></span>
+                <span class="badge bg-primary rounded-pill me-2" th:inline="text">[[${roll.request}]]</span>
+                <span th:text="${roll.result}"></span>
             </li>
         </ul>
     </div>
     <div class="form-group">
         <div class="input-group input-group-lg">
-            <label for="message">Message:</label>
+            <label class="me-2" for="message">Message:</label>
             <input type="text" class="form-control" id="message">
         </div>
     </div>
