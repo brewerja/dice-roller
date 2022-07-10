@@ -1,4 +1,7 @@
 package dieroll.models;
 
-public record Message(String name, String message) {
+import lombok.Builder;
+
+@Builder
+public record Message(String roomId, String name, long timestamp, String message) {
 }

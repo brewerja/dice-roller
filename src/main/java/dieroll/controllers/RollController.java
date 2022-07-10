@@ -21,7 +21,6 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -66,7 +65,7 @@ public class RollController {
     @MessageMapping("/message/{roomId}")
     @SendTo("/topic/messages/{roomId}")
     public Message talk(@DestinationVariable String roomId, Message message) {
-        return message;
+        return new Message(roomId, message.name(), Instant.now().toEpochMilli(), message.message());
     }
 
     @GetMapping("/rooms/{roomId}")

@@ -8,10 +8,8 @@ function connectRolls() {
 	rollsClient = Stomp.over(socket);
 	rollsClient.connect({}, function(frame) {
 		rollsClient.subscribe('/topic/rolls/' + roomId, function(dieRoll) {
-			showRoll(JSON.parse(dieRoll.body).name,
-					JSON.parse(dieRoll.body).timestamp,
-					JSON.parse(dieRoll.body).request,
-					JSON.parse(dieRoll.body).result);
+		    var d = JSON.parse(dieRoll.body);
+			showRoll(d.name, d.timestamp, d.request, d.result);
 		});
 	});
 }
@@ -21,9 +19,9 @@ function connectMessages() {
 	messagesClient = Stomp.over(socket);
 	try {
 		messagesClient.connect({}, function(frame) {
-			messagesClient.subscribe('/topic/messages/' + roomId, function(dieRoll) {
-				showMessage(JSON.parse(dieRoll.body).name, JSON
-						.parse(dieRoll.body).message);
+			messagesClient.subscribe('/topic/messages/' + roomId, function(message) {
+			    var m = JSON.parse(message.body);
+				showMessage(m.name, m.timestamp, m.message);
 			});
 		});
 	} catch (e) {
@@ -94,11 +92,13 @@ function scrollTop() {
 	rollContainer.scrollTop = rollContainer.scrollHeight;
 }
 
-function showMessage(name, message) {
+function showMessage(name, timestamp, message) {
 	var ul = $('#rollContainer').find("ul").last();
-	var li = document.createElement('li');
-    li.appendChild(document.createTextNode(name + ": " + message));
-    ul.append(li);
+    ul.find("li").last().attr("class", "list-group-item");
+    ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(timestamp)}">
+               <span class="me-2">${name}</span>
+               <span>${message}</span>
+               </li>`);
     scrollTop();
 }
 
