@@ -28,29 +28,29 @@
           integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
 
 </head>
-<body>
+<body class="d-flex bg-dark">
 <noscript>
     <h2 style="color: #ff0000">Seems your browser doesn't support
         Javascript! Websocket relies on Javascript being enabled. Please
         enable Javascript and reload this page!</h2>
 </noscript>
 <div class="container-sm">
-    <h1 th:inline="text">Room: [[${roomId}]]</h1>
+    <h1 class="text-light" th:inline="text">Room: [[${roomId}]]</h1>
     <div class="row">
         <div class="input-group input-group-lg">
             <div class="input-group-prepend">
                 <div class="btn-toolbar" role="toolbar">
                     <div class="btn-group btn-group-lg me-2">
-                        <button id="roll2d6" onclick="roll('6,6');" type="button" class="btn btn-outline-primary">
+                        <button id="roll2d6" onclick="roll('6,6');" type="button" class="btn btn-primary">
                             d6,d6
                         </button>
                     </div>
                     <div class="btn-group btn-group-lg me-2">
-                        <button id="roll20" onclick="roll('20');" type="button" class="btn btn-outline-primary">d20
+                        <button id="roll20" onclick="roll('20');" type="button" class="btn btn-primary">d20
                         </button>
                     </div>
                     <div class="btn-group btn-group-lg me-2">
-                        <button id="roll6" onclick="roll('6');" type="button" class="btn btn-outline-primary">d6
+                        <button id="roll6" onclick="roll('6');" type="button" class="btn btn-primary">d6
                         </button>
                     </div>
                 </div>

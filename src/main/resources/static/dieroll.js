@@ -96,7 +96,7 @@ function showMessage(name, timestamp, message) {
 	var ul = $('#rollContainer').find("ul").last();
     ul.find("li").last().attr("class", "list-group-item");
     ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(timestamp)}">
-               <span class="me-2">${name}</span>
+               <span class="me-2">${name}:</span>
                <span>${message}</span>
                </li>`);
     scrollTop();
