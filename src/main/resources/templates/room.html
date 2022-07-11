@@ -2,10 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>DiceRoller</title>
-    <script>
-    var roomId = "[[${roomId}]]";
-
-    </script>
+    <script>var roomId = "[[${roomId}]]";</script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"
             integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"
@@ -29,6 +26,7 @@ div#rollContainer { overflow-y : scroll; height : calc(100vh - 500px);}
 /* CSS for other than iOS devices */
 div#rollContainer { overflow-y : scroll; height : calc(100vh - 298px);}
 }
+
 html {font-size: 1.5rem;}
     </style>
 
