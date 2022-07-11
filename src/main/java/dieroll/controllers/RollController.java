@@ -4,6 +4,7 @@ import dieroll.models.Message;
 import dieroll.models.Roll;
 import dieroll.models.RollRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -14,13 +15,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.ModelAndView;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -32,7 +30,7 @@ public class RollController {
     private static final Pattern ROLL_PATTERN = Pattern.compile("^[\\d,]{1,60}$");
 
     @Autowired
-    JedisPool jedisPool;
+    RedisTemplate<String, Roll> redisTemplate;
 
     @MessageMapping("/roll/{roomId}")
     @SendTo("/topic/rolls/{roomId}")
@@ -50,16 +48,7 @@ public class RollController {
     }
 
     private void persistRollToRedis(Roll roll) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            jedis.zadd(roll.roomId().getBytes(), roll.timestamp(), roll.getBytes());
-        }
-    }
-
-    private List<Roll> getRoomRolls(String roomId) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            Set<String> stringRolls = jedis.zrange(roomId, -100, -1);
-            return stringRolls.stream().map(r -> Roll.getRollFromRedisValue(roomId, r)).collect(Collectors.toList());
-        }
+        redisTemplate.opsForZSet().add(roll.roomId(), roll, roll.timestamp());
     }
 
     @MessageMapping("/message/{roomId}")
@@ -74,4 +63,9 @@ public class RollController {
         model.addAttribute("savedRolls", getRoomRolls(roomId));
         return new ModelAndView("room");
     }
+
+    private Set<Roll> getRoomRolls(String roomId) {
+        return redisTemplate.opsForZSet().range(roomId, -100, -1);
+    }
+
 }
