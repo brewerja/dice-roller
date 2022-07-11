@@ -6,7 +6,10 @@ import java.util.stream.Collectors;
 public record RollRequest(String name, String request) {
 
     public String getRequestDisplay() {
-        return Arrays.stream(request.split(",")).map(r -> "d" + r).collect(Collectors.joining(","));
+        if (request.charAt(0) == '#')
+            return Arrays.stream(request.substring(1).split(",")).map(r -> "d" + r).collect(Collectors.joining(","));
+        else
+            return request;
     }
 
 }

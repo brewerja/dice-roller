@@ -1,6 +1,5 @@
 package dieroll.controllers;
 
-import dieroll.models.Message;
 import dieroll.models.Roll;
 import dieroll.models.RollRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,13 +34,17 @@ public class RollController {
     @MessageMapping("/roll/{roomId}")
     @SendTo("/topic/rolls/{roomId}")
     public Roll roll(@DestinationVariable String roomId, RollRequest rollRequest) {
-        if (!ROLL_PATTERN.matcher(rollRequest.request()).matches())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad roll string");
-        String result = Arrays.stream(rollRequest.request().split(","))
-                .filter(s -> !s.isEmpty())
-                .map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1)
-                .map(Object::toString)
-                .collect(Collectors.joining(","));
+        String result = null;
+        if (rollRequest.request().charAt(0) == '#') {
+            String rollString = rollRequest.request().substring(1);
+            if (!ROLL_PATTERN.matcher(rollString).matches())
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad roll string");
+            result = Arrays.stream(rollString.split(","))
+                    .filter(s -> !s.isEmpty())
+                    .map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1)
+                    .map(Object::toString)
+                    .collect(Collectors.joining(","));
+        }
         Roll roll = new Roll(roomId, rollRequest.name(), Instant.now().toEpochMilli(), rollRequest.getRequestDisplay(), result);
         persistRollToRedis(roll);
         return roll;
@@ -49,12 +52,6 @@ public class RollController {
 
     private void persistRollToRedis(Roll roll) {
         redisTemplate.opsForZSet().add(roll.roomId(), roll, roll.timestamp());
-    }
-
-    @MessageMapping("/message/{roomId}")
-    @SendTo("/topic/messages/{roomId}")
-    public Message talk(@DestinationVariable String roomId, Message message) {
-        return new Message(roomId, message.name(), Instant.now().toEpochMilli(), message.message());
     }
 
     @GetMapping("/rooms/{roomId}")

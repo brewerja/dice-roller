@@ -1,5 +1,4 @@
 var stompClient;
-var messagesClient;
 
 var PLAYER_NAME_KEY = "playerName";
 
@@ -12,22 +11,6 @@ function connectRolls() {
 			showRoll(d.name, d.timestamp, d.request, d.result);
 		});
 	});
-}
-
-function connectMessages() {
-	var socket = new SockJS('/message');
-	messagesClient = Stomp.over(socket);
-	try {
-		messagesClient.connect({}, function(frame) {
-			messagesClient.subscribe('/topic/messages/' + roomId, function(message) {
-			    var m = JSON.parse(message.body);
-				showMessage(m.name, m.timestamp, m.message);
-			});
-		});
-	} catch (e) {
-
-	}
-
 }
 
 function initializeNames() {
@@ -47,7 +30,6 @@ $(document).ready(
 			initializeNames();
 			addNameSaveHandlers();
 			connectRolls();
-			connectMessages();
 			scrollTop();
 			formatPriorRolls();
 		});
@@ -80,9 +62,9 @@ $(document).ready(function() {
 function talk() {
 	message = $("#message").val();
 	name = $("#name").val();
-	messagesClient.send("/app/message/" + roomId, {}, JSON.stringify({
+	rollsClient.send("/app/roll/" + roomId, {}, JSON.stringify({
 		'name' : name,
-		'message' : message,
+		'request' : message,
 	}));
 	$("#message").val("");
 }
@@ -103,12 +85,16 @@ function showMessage(name, timestamp, message) {
 }
 
 function showRoll(name, timestamp, request, result) {
-	var ul = $('#rollContainer').find("ul").last();
-    ul.find("li").last().attr("class", "list-group-item");
-    ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(timestamp)}">
-               <span class="me-2">${name}</span>
-               <span class="badge bg-primary rounded-pill me-2">${request}</span>
-               <span>${result}</span>
-               </li>`);
-    scrollTop();
+    if (result == null) {
+        showMessage(name, timestamp, request);
+    } else {
+	    var ul = $('#rollContainer').find("ul").last();
+        ul.find("li").last().attr("class", "list-group-item");
+        ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(timestamp)}">
+                   <span class="me-2">${name}</span>
+                   <span class="badge bg-primary rounded-pill me-2">${request}</span>
+                   <span>${result}</span>
+                   </li>`);
+        scrollTop();
+    }
 }
