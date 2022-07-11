@@ -65,7 +65,7 @@
                 <span th:if="${roll.result != null}" class="badge bg-primary rounded-pill me-2" th:inline="text">[[${roll.request}]]</span>
                 <span th:if="${roll.result != null}" th:text="${roll.result}"></span>
                 <span th:if="${roll.result == null}" class="me-2" th:inline="text">[[${roll.name}]]:</span>
-                <span th:if="${roll.result == null}" class="me-2" th:text="${roll.request}"></span>
+                <span th:if="${roll.result == null}" class="me-2" th:utext="${roll.request}"></span>
             </li>
         </ul>
     </div>
