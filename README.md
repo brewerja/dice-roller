@@ -4,7 +4,10 @@ Simple app to have chat/dice-rolling rooms.
 
 ### Run from code:
 
-`./mvnw spring-boot:run`
+```
+docker run --rm -d -p 6379:6379 redis 
+./mvnw spring-boot:run
+```
 
 ### Build the image:
 
