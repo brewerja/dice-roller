@@ -2,6 +2,8 @@ package dieroll.controllers;
 
 import dieroll.models.Roll;
 import dieroll.models.RollRequest;
+import org.owasp.html.HtmlSanitizer;
+import org.owasp.html.PolicyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -31,10 +33,14 @@ public class RollController {
     @Autowired
     RedisTemplate<String, Roll> redisTemplate;
 
+    @Autowired
+    PolicyFactory policyFactory;
+
     @MessageMapping("/roll/{roomId}")
     @SendTo("/topic/rolls/{roomId}")
     public Roll roll(@DestinationVariable String roomId, RollRequest rollRequest) {
         String result = null;
+        String sanitizedRequest = null;
         if (rollRequest.request().charAt(0) == '#') {
             String rollString = rollRequest.request().substring(1);
             if (!ROLL_PATTERN.matcher(rollString).matches())
@@ -44,8 +50,11 @@ public class RollController {
                     .map(numSides -> RANDOM.nextInt(Integer.parseInt(numSides)) + 1)
                     .map(Object::toString)
                     .collect(Collectors.joining(","));
+            sanitizedRequest = rollRequest.getRequestDisplay();
+        } else {
+            sanitizedRequest = policyFactory.sanitize(rollRequest.request());
         }
-        Roll roll = new Roll(roomId, rollRequest.name(), Instant.now().toEpochMilli(), rollRequest.getRequestDisplay(), result);
+        Roll roll = new Roll(roomId, rollRequest.name(), Instant.now().toEpochMilli(), sanitizedRequest, result);
         persistRollToRedis(roll);
         return roll;
     }

@@ -1,6 +1,8 @@
 package dieroll;
 
 import dieroll.models.Roll;
+import org.owasp.html.HtmlPolicyBuilder;
+import org.owasp.html.PolicyFactory;
 import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +13,14 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 public class RedisConfig {
+
+    @Bean
+    public PolicyFactory policyFactory() {
+        return new HtmlPolicyBuilder()
+                .allowElements("a", "p")
+                .allowAttributes("href").onElements("a")
+                .toFactory();
+    }
 
     @Bean
     public LettuceClientConfigurationBuilderCustomizer lettuceClientConfigurationBuilderCustomizer() {
