@@ -1,4 +1,4 @@
-package dieroll;
+package dieroll.config;
 
 import dieroll.models.Roll;
 import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
