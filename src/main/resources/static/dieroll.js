@@ -84,15 +84,24 @@ function showMessage(name, timestamp, message) {
     scrollTop();
 }
 
+function getRequestDisplay(request) {
+    if (request == "d20")
+        return `<span class="badge text-bg-primary rounded-pill me-2">${request}</span>`
+    else if (request == "d6,d6")
+        return `<span class="badge text-bg-danger rounded-pill me-2">d6</span><span class="badge text-bg-light rounded-pill me-2">d6</span>`
+    else
+        return `<span class="badge text-bg-success rounded-pill me-2">${request}</span>`
+}
+
 function showRoll(name, timestamp, request, result) {
     if (result == null) {
         showMessage(name, timestamp, request);
     } else {
 	    var ul = $('#rollContainer').find("ul").last();
-        ul.find("li").last().attr("class", "list-group-item");
+        ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
         ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(timestamp)}">
                    <span class="me-2">${name}</span>
-                   <span class="badge bg-primary rounded-pill me-2">${request}</span>
+                   ${getRequestDisplay(request)}
                    <span>${result}</span>
                    </li>`);
         scrollTop();

@@ -67,9 +67,9 @@ html {font-size: 1.5rem;}
     </div>
     <div class="my-3 border rounded" id="rollContainer">
         <ul class="list-group">
-            <li class="list-group-item" th:each="roll: ${savedRolls}" th:title=${roll.timestamp} th:inline="text">
+            <li class="list-group-item list-group-item-secondary" th:each="roll: ${savedRolls}" th:title=${roll.timestamp} th:inline="text">
                 <span th:if="${roll.result != null}" class="me-2" th:text="${roll.name}"></span>
-                <span th:if="${roll.result != null}" class="badge bg-primary rounded-pill me-2" th:inline="text">[[${roll.request}]]</span>
+                <span th:if="${roll.result != null}" class="badge text-bg-secondary rounded-pill me-2" th:inline="text">[[${roll.request}]]</span>
                 <span th:if="${roll.result != null}" th:text="${roll.result}"></span>
                 <span th:if="${roll.result == null}" class="me-2" th:inline="text">[[${roll.name}]]:</span>
                 <span th:if="${roll.result == null}" class="me-2" th:utext="${roll.request}"></span>
