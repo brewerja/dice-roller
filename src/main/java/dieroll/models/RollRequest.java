@@ -6,9 +6,9 @@ import java.util.stream.Stream;
 
 public record RollRequest(String name, String request) {
 
-    // Begins with named capture group 'die', consisting of: 'd' followed by 1-60 digits
-    // Repeat ',' and the die capture group zero or more times, then end
-    private static final Pattern ROLL_PATTERN = Pattern.compile("^(?<die>d\\d{1,60})(,\\k<die>)*$");
+    // Begin with 'd' followed by 1-10 digits
+    // Repeat ',' and the same pattern as above 0-9 times, then end
+    private static final Pattern ROLL_PATTERN = Pattern.compile("^d\\d{1,10}(?:,d\\d{1,10}){0,9}$");
 
     public Stream<Integer> getRollingNumbers() {
         return Arrays.stream(request.replace("d", "").split(",")).map(Integer::valueOf);

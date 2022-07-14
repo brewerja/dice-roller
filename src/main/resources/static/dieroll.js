@@ -27,13 +27,13 @@ function addNameSaveHandlers() {
 
 $(document).ready(
 		function() {
-            $.get(`/rooms/${roomId}/rolls`, showRolls).done(scrollTop);
+            $.get(`/rooms/${roomId}/rolls`, showPriorRolls).done(scrollTop);
 			initializeNames();
 			addNameSaveHandlers();
 			connectRolls();
 		});
 
-function showRolls(rolls) {
+function showPriorRolls(rolls) {
   rolls.forEach(showRoll);
   var ul = $('#rollContainer').find("ul").last();
   ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
@@ -75,16 +75,6 @@ function scrollTop() {
 	rollContainer.scrollTop = rollContainer.scrollHeight;
 }
 
-function showMessage(name, timestamp, message) {
-	var ul = $('#rollContainer').find("ul").last();
-    ul.find("li").last().attr("class", "list-group-item");
-    ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(timestamp)}">
-               <span class="me-2">${name}:</span>
-               <span>${message}</span>
-               </li>`);
-    scrollTop();
-}
-
 function getRequestDisplay(request, results) {
     if (request == "d20")
         return `<span class="badge text-bg-primary me-2">${results[0]}</span>`
@@ -98,11 +88,14 @@ function getRequestDisplay(request, results) {
 }
 
 function showRoll(roll) {
+    var ul = $('#rollContainer').find("ul").last();
+    ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
     if (roll.results == null) {
-        showMessage(roll.name, roll.timestamp, roll.request);
+        ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(roll.timestamp)}">
+                   <span class="me-2">${roll.name}:</span>
+                   <span>${roll.request}</span>
+                   </li>`);
     } else {
-	    var ul = $('#rollContainer').find("ul").last();
-        ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
         ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(roll.timestamp)}">
                    <span class="me-2">${roll.name}</span>
                    ${getRequestDisplay(roll.request, roll.results)}
