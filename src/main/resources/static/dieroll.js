@@ -7,8 +7,8 @@ function connectRolls() {
 	rollsClient = Stomp.over(socket);
 	rollsClient.connect({}, function(frame) {
 		rollsClient.subscribe('/topic/rolls/' + roomId, function(dieRoll) {
-		    var d = JSON.parse(dieRoll.body);
-			showRoll(d.name, d.timestamp, d.request, d.result);
+			showRoll(JSON.parse(dieRoll.body));
+            scrollTop();
 		});
 	});
 }
@@ -27,15 +27,16 @@ function addNameSaveHandlers() {
 
 $(document).ready(
 		function() {
+            $.get(`/rooms/${roomId}/rolls`, showRolls).done(scrollTop);
 			initializeNames();
 			addNameSaveHandlers();
 			connectRolls();
-			scrollTop();
-			formatPriorRolls();
 		});
 
-function formatPriorRolls() {
-    $('#rollContainer').find('li').each(function (i, v) {v.title = formatTimestamp(Number(v.title))});
+function showRolls(rolls) {
+  rolls.forEach(showRoll);
+  var ul = $('#rollContainer').find("ul").last();
+  ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
 }
 
 function formatTimestamp(timestamp) {
@@ -84,26 +85,28 @@ function showMessage(name, timestamp, message) {
     scrollTop();
 }
 
-function getRequestDisplay(request) {
+function getRequestDisplay(request, results) {
     if (request == "d20")
-        return `<span class="badge text-bg-primary rounded-pill me-2">${request}</span>`
-    else if (request == "d6,d6")
-        return `<span class="badge text-bg-danger rounded-pill me-2">d6</span><span class="badge text-bg-light rounded-pill me-2">d6</span>`
-    else
-        return `<span class="badge text-bg-success rounded-pill me-2">${request}</span>`
+        return `<span class="badge text-bg-primary me-2">${results[0]}</span>`
+    else if (request == "d6,d6") {
+        return `<span class="badge text-bg-danger me-2">${results[0]}</span><span class="badge text-bg-light me-2">${results[1]}</span>`
+    } else if (request == "d6")
+        return `<span class="badge text-bg-success me-2">${results[0]}</span>`
+    else {
+        return results.map(n => `<span class="badge text-bg-secondary me-2">${n}</span>`).join("");
+    }
 }
 
-function showRoll(name, timestamp, request, result) {
-    if (result == null) {
-        showMessage(name, timestamp, request);
+function showRoll(roll) {
+    if (roll.results == null) {
+        showMessage(roll.name, roll.timestamp, roll.request);
     } else {
 	    var ul = $('#rollContainer').find("ul").last();
         ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
-        ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(timestamp)}">
-                   <span class="me-2">${name}</span>
-                   ${getRequestDisplay(request)}
-                   <span>${result}</span>
+        ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(roll.timestamp)}">
+                   <span class="me-2">${roll.name}</span>
+                   ${getRequestDisplay(roll.request, roll.results)}
+                   <span class="fs-6 fst-italic">${roll.request}</span>
                    </li>`);
-        scrollTop();
     }
 }
