@@ -4,9 +4,6 @@ var rollsClient;
 function connectRolls() {
     rollsClient = new StompJs.Client({
         brokerURL: 'wss://' + window.location.host + '/roll',
-        reconnectDelay: 5000,
-        heartbeatIncoming: 4000,
-        heartbeatOutgoing: 4000,
     });
     rollsClient.onConnect = function(frame) {
         rollsClient.subscribe('/topic/rolls/' + roomId, function(dieRoll) {
