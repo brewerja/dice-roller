@@ -9,18 +9,19 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-@Controller
+@RestController
 public class RollController {
 
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -28,6 +29,17 @@ public class RollController {
 
     @Autowired
     RedisTemplate<String, Roll> redisTemplate;
+
+    @GetMapping("/rooms/{roomId}")
+    public ModelAndView rooms(@PathVariable String roomId, Model model) {
+        model.addAttribute("roomId", roomId);
+        return new ModelAndView("room");
+    }
+
+    @GetMapping(path = "/rooms/{roomId}/rolls")
+    public Set<Roll> getRoomRolls(@PathVariable String roomId) {
+        return redisTemplate.opsForZSet().range(roomId, -100, -1);
+    }
 
     @MessageMapping("/roll/{roomId}")
     @SendTo("/topic/rolls/{roomId}")
@@ -46,12 +58,6 @@ public class RollController {
 
     private void persistRollToRedis(Roll roll) {
         redisTemplate.opsForZSet().add(roll.roomId(), roll, roll.timestamp());
-    }
-
-    @GetMapping("/rooms/{roomId}")
-    public ModelAndView rooms(@PathVariable String roomId, Model model) {
-        model.addAttribute("roomId", roomId);
-        return new ModelAndView("room");
     }
 
 }
