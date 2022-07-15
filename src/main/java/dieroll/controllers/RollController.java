@@ -29,7 +29,6 @@ public class RollController {
     @Autowired
     RedisTemplate<String, Roll> redisTemplate;
 
-
     @MessageMapping("/roll/{roomId}")
     @SendTo("/topic/rolls/{roomId}")
     public Roll roll(@DestinationVariable String roomId, RollRequest rollRequest) {

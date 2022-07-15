@@ -31,12 +31,12 @@ $(document).ready(
 			initializeNames();
 			addNameSaveHandlers();
 			connectRolls();
+			$("#message").val("");
 		});
 
 function showPriorRolls(rolls) {
   rolls.forEach(showRoll);
-  var ul = $('#rollContainer').find("ul").last();
-  ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
+  $("#rollList").find("li").last().attr("class", "list-group-item list-group-item-secondary");
 }
 
 function formatTimestamp(timestamp) {
@@ -51,18 +51,34 @@ function roll(request) {
 	}));
 }
 
+var n = 0
+
 $(document).ready(function() {
 	$("#message").keyup(function(e) {
 		if (e.keyCode == 13) {
 			talk();
+			n = 0;
+		} else if (e.keyCode == 38) {
+		    n = Math.max(-100, n - 1);
+            var lastRequest = $("#rollList").find("li").eq(n).find("span").last().text();
+		    $("#message").val("");
+		    $("#message").val(lastRequest);
+		} else if (e.keyCode == 40) {
+		    n = Math.min(0, n + 1);
+		    $("#message").val("");
+		    if (n != 0) {
+                var lastRequest = $("#rollList").find("li").eq(n).find("span").last().text();
+                $("#message").val(lastRequest);
+            }
 		}
 	});
-
 });
 
 function talk() {
-	message = $("#message").val();
 	name = $("#name").val();
+	message = $("#message").val();
+	if (message == "")
+	    return
 	rollsClient.send("/app/roll/" + roomId, {}, JSON.stringify({
 		'name' : name,
 		'request' : message,
@@ -88,7 +104,7 @@ function getRequestDisplay(request, results) {
 }
 
 function showRoll(roll) {
-    var ul = $('#rollContainer').find("ul").last();
+    var ul = $('#rollList');
     ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
     if (roll.results == null) {
         ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(roll.timestamp)}">
