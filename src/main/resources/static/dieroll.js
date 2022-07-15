@@ -3,7 +3,7 @@ var rollsClient;
 
 function connectRolls() {
     rollsClient = new StompJs.Client({
-        brokerURL: 'ws://' + window.location.host + '/roll',
+        brokerURL: 'wss://' + window.location.host + '/roll',
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
