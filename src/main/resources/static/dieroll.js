@@ -45,10 +45,15 @@ function formatTimestamp(timestamp) {
 
 function roll(request) {
 	name = $("#name").val();
-	rollsClient.send("/app/roll/" + roomId, {}, JSON.stringify({
-		'name' : name,
-		'request' : request
-	}));
+	$.post({
+	    url: "/rolls/" + roomId,
+	    data: JSON.stringify({
+            'name' : name,
+		    'request' : request
+	    }),
+	    dataType: "json",
+        contentType: "application/json; charset=utf-8"
+	});
 }
 
 $(document).ready(function() {
