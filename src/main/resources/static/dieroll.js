@@ -1,16 +1,19 @@
-var stompClient;
-
 var PLAYER_NAME_KEY = "playerName";
 
 function connectRolls() {
-	var socket = new SockJS('/roll');
-	rollsClient = Stomp.over(socket);
-	rollsClient.connect({}, function(frame) {
-		rollsClient.subscribe('/topic/rolls/' + roomId, function(dieRoll) {
-			showRoll(JSON.parse(dieRoll.body));
-            scrollTop();
-		});
-	});
+    rollsClient = new StompJs.Client({
+      brokerURL: 'ws://' + window.location.host + '/roll',
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+    });
+    rollsClient.onConnect = function(frame) {
+      rollsClient.subscribe('/topic/rolls/' + roomId, function(dieRoll) {
+         showRoll(JSON.parse(dieRoll.body));
+         scrollTop();
+      });
+    }
+    rollsClient.activate();
 }
 
 function initializeNames() {
@@ -45,10 +48,12 @@ function formatTimestamp(timestamp) {
 
 function roll(request) {
 	name = $("#name").val();
-	rollsClient.send("/app/roll/" + roomId, {}, JSON.stringify({
+	rollsClient.publish({destination: "/app/roll/" + roomId, body: JSON.stringify({
 		'name' : name,
 		'request' : request
-	}));
+	}),
+	headers: {},
+	});
 }
 
 var n = 0
