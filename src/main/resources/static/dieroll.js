@@ -1,6 +1,19 @@
 var PLAYER_NAME_KEY = "playerName";
 var rollsClient;
 
+$(document).ready(
+    function() {
+        $.get(`/rooms/${roomId}/rolls`, showPriorRolls).done(scrollTop);
+        initializeNames();
+        addNameSaveHandlers();
+        connectRolls();
+        registerKeyboardCallbacks();
+        $("#message").val("");
+        $("#roll2d6").click(() => {roll("d6,d6")});
+        $("#rolld20").click(() => {roll("d20")});
+        $("#rolld6").click(() => {roll("d6")});
+    });
+
 function connectRolls() {
     rollsClient = new StompJs.Client({
         brokerURL: 'wss://' + window.location.host + '/roll',
@@ -12,12 +25,12 @@ function connectRolls() {
             showRoll(JSON.parse(dieRoll.body));
             scrollTop();
         });
-    }
+    };
     rollsClient.activate();
 }
 
 function initializeNames() {
-    if(localStorage.getItem(PLAYER_NAME_KEY)) {
+    if (localStorage.getItem(PLAYER_NAME_KEY)) {
         $('#name').val(localStorage.getItem(PLAYER_NAME_KEY));
     }
 }
@@ -27,15 +40,6 @@ function addNameSaveHandlers() {
         localStorage.setItem(PLAYER_NAME_KEY, $('#name').val());
     });
 }
-
-$(document).ready(
-    function() {
-        $.get(`/rooms/${roomId}/rolls`, showPriorRolls).done(scrollTop);
-        initializeNames();
-        addNameSaveHandlers();
-        connectRolls();
-        $("#message").val("");
-    });
 
 function showPriorRolls(rolls) {
     rolls.forEach(showRoll);
@@ -47,11 +51,10 @@ function formatTimestamp(timestamp) {
 }
 
 function roll(request) {
-    var name = $("#name").val();
     rollsClient.publish({
         destination: "/app/roll/" + roomId,
         body: JSON.stringify({
-            'name' : name,
+            'name' : $("#name").val(),
             'request' : request
         }),
         headers: {},
@@ -60,36 +63,35 @@ function roll(request) {
 
 var n = 0
 
-$(document).ready(function() {
+function registerKeyboardCallbacks() {
     $("#message").keyup(function(e) {
         if (e.keyCode == 13) {
             talk();
             n = 0;
         } else if (e.keyCode == 38) {
-            n = Math.max(-100, n - 1);
-            var lastRequest = $("#rollList").find("li").eq(n).find("span").last().text();
             $("#message").val("");
+            n = Math.max(-100, n - 1);
+            const lastRequest = $("#rollList").find("li").eq(n).find("span").last().text();
             $("#message").val(lastRequest);
         } else if (e.keyCode == 40) {
             n = Math.min(0, n + 1);
             $("#message").val("");
             if (n != 0) {
-                var lastRequest = $("#rollList").find("li").eq(n).find("span").last().text();
+                const lastRequest = $("#rollList").find("li").eq(n).find("span").last().text();
                 $("#message").val(lastRequest);
             }
         }
     });
-});
+}
 
 function talk() {
-    var name = $("#name").val();
-    var message = $("#message").val();
+    const message = $("#message").val();
     if (message == "")
         return
     rollsClient.publish({
         destination: "/app/roll/" + roomId,
         body: JSON.stringify({
-            'name' : name,
+            'name' : $("#name").val(),
             'request' : message,
         }),
         headers: {}}
@@ -98,7 +100,7 @@ function talk() {
 }
 
 function scrollTop() {
-    var rollContainer = document.getElementById('rollContainer');
+    const rollContainer = document.getElementById('rollContainer');
     rollContainer.scrollTop = rollContainer.scrollHeight;
 }
 
@@ -115,18 +117,19 @@ function getRequestDisplay(request, results) {
 }
 
 function showRoll(roll) {
-    var ul = $('#rollList');
+    const ul = $('#rollList');
     ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
     if (roll.results == null) {
         ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(roll.timestamp)}">
-<span class="me-2">${roll.name}:</span>
-<span>${roll.request}</span>
-</li>`);
+                       <span class="me-2">${roll.name}:</span>
+                       <span>${roll.request}</span>
+                   </li>`);
     } else {
         ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(roll.timestamp)}">
-<span class="me-2">${roll.name}</span>
-${getRequestDisplay(roll.request, roll.results)}
-<span class="fs-6 fst-italic">${roll.request}</span>
-</li>`);
+                       <span class="me-2">${roll.name}</span>
+                       ${getRequestDisplay(roll.request, roll.results)}
+                       <span class="fs-6 fst-italic">${roll.request}</span>
+                   </li>`);
     }
+
 }
