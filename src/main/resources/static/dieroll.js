@@ -64,6 +64,18 @@ function roll(request) {
 var n = 0
 
 function registerKeyboardCallbacks() {
+    $("body").keyup(function(e) {
+        if (e.target.type === "text") {
+            return;
+        }
+        if (e.keyCode == 82) { // 'R'
+            roll("d6,d6");
+        } else if (e.keyCode == 66) { // 'B'
+            roll("d20");
+        } else if (e.keyCode == 71) { // 'G'
+            roll("d6");
+        }
+    });
     $("#message").keyup(function(e) {
         if (e.keyCode == 13) {
             talk();
