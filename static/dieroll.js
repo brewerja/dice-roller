@@ -2,10 +2,10 @@ var PLAYER_NAME_KEY = "playerName";
 var ws;
 var lastPongTime = Date.now();
 var heartbeatInterval;
+var lastDisplayedTimestamp = 0;
 
 $(document).ready(
     function() {
-        $.get(`/rooms/${roomId}/rolls`, showPriorRolls).done(scrollTop);
         initializeNames();
         addNameSaveHandlers();
         connectRolls();
@@ -22,6 +22,10 @@ function connectRolls(pendingSend) {
     ws = new WebSocket(`${protocol}//${window.location.host}/ws/${roomId}`);
     ws.onopen = function() {
         lastPongTime = Date.now();
+        $.get(`/rooms/${roomId}/rolls`, function(rolls) {
+            rolls.filter(r => r.timestamp > lastDisplayedTimestamp).forEach(showRoll);
+            scrollTop();
+        });
         if (pendingSend) ws.send(pendingSend);
         heartbeatInterval = setInterval(function() {
             if (Date.now() - lastPongTime > 10000) {
@@ -140,6 +144,7 @@ function getRequestDisplay(request, results) {
 }
 
 function showRoll(roll) {
+    if (roll.timestamp > lastDisplayedTimestamp) lastDisplayedTimestamp = roll.timestamp;
     const ul = $('#rollList');
     ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
     if (roll.results == null) {
