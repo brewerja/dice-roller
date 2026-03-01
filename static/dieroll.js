@@ -1,5 +1,7 @@
 var PLAYER_NAME_KEY = "playerName";
 var ws;
+var lastPongTime = Date.now();
+var heartbeatInterval;
 
 $(document).ready(
     function() {
@@ -15,16 +17,30 @@ $(document).ready(
     });
 
 function connectRolls(pendingSend) {
+    clearInterval(heartbeatInterval);
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     ws = new WebSocket(`${protocol}//${window.location.host}/ws/${roomId}`);
     ws.onopen = function() {
+        lastPongTime = Date.now();
         if (pendingSend) ws.send(pendingSend);
+        heartbeatInterval = setInterval(function() {
+            if (Date.now() - lastPongTime > 10000) {
+                ws.close();
+                connectRolls();
+            } else {
+                ws.send(JSON.stringify({name: '', request: 'ping'}));
+            }
+        }, 5000);
     };
     ws.onmessage = function(event) {
-        showRoll(JSON.parse(event.data));
+        lastPongTime = Date.now();
+        const data = JSON.parse(event.data);
+        if (data.pong) return;
+        showRoll(data);
         scrollTop();
     };
     ws.onclose = function() {
+        clearInterval(heartbeatInterval);
         setTimeout(connectRolls, 1000);
     };
 }

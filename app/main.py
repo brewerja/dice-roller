@@ -86,6 +86,10 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             name = nh3.clean(str(data.get("name", "")))
             request = nh3.clean(str(data.get("request", "")))
 
+            if request == "ping":
+                await websocket.send_text('{"pong":true}')
+                continue
+
             results = None
             if ROLL_PATTERN.match(request):
                 results = [
