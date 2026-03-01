@@ -3,6 +3,7 @@ var ws;
 var lastPongTime = Date.now();
 var heartbeatInterval;
 var lastDisplayedTimestamp = 0;
+var displayedTimestamps = new Set();
 
 $(document).ready(
     function() {
@@ -144,6 +145,8 @@ function getRequestDisplay(request, results) {
 }
 
 function showRoll(roll) {
+    if (displayedTimestamps.has(roll.timestamp)) return;
+    displayedTimestamps.add(roll.timestamp);
     if (roll.timestamp > lastDisplayedTimestamp) lastDisplayedTimestamp = roll.timestamp;
     const ul = $('#rollList');
     ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
