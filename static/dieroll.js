@@ -22,6 +22,7 @@ function connectRolls(pendingSend) {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     ws = new WebSocket(`${protocol}//${window.location.host}/ws/${roomId}`);
     ws.onopen = function() {
+        $('#connStatus').text('🟢').attr('title', 'Connected');
         lastPongTime = Date.now();
         $.get(`/rooms/${roomId}/rolls`, function(rolls) {
             rolls.filter(r => r.timestamp > lastDisplayedTimestamp).forEach(showRoll);
@@ -45,6 +46,7 @@ function connectRolls(pendingSend) {
         scrollTop();
     };
     ws.onclose = function() {
+        $('#connStatus').text('🔴').attr('title', 'Reconnecting...');
         clearInterval(heartbeatInterval);
         setTimeout(connectRolls, 1000);
     };
