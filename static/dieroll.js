@@ -1,5 +1,5 @@
 var PLAYER_NAME_KEY = "playerName";
-var rollsClient;
+var ws;
 
 $(document).ready(
     function() {
@@ -15,18 +15,12 @@ $(document).ready(
     });
 
 function connectRolls() {
-    rollsClient = new StompJs.Client({
-        brokerURL: 'wss://' + window.location.host + '/roll',
-        heartbeatIncoming: 30000,
-        heartbeatOutgoing: 30000,
-    });
-    rollsClient.onConnect = function(frame) {
-        rollsClient.subscribe('/topic/rolls/' + roomId, function(dieRoll) {
-            showRoll(JSON.parse(dieRoll.body));
-            scrollTop();
-        });
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    ws = new WebSocket(`${protocol}//${window.location.host}/ws/${roomId}`);
+    ws.onmessage = function(event) {
+        showRoll(JSON.parse(event.data));
+        scrollTop();
     };
-    rollsClient.activate();
 }
 
 function initializeNames() {
@@ -51,14 +45,10 @@ function formatTimestamp(timestamp) {
 }
 
 function roll(request) {
-    rollsClient.publish({
-        destination: "/app/roll/" + roomId,
-        body: JSON.stringify({
-            'name' : $("#name").val(),
-            'request' : request
-        }),
-        headers: {},
-    });
+    ws.send(JSON.stringify({
+        'name' : $("#name").val(),
+        'request' : request
+    }));
 }
 
 var n = 0
@@ -100,14 +90,10 @@ function talk() {
     const message = $("#message").val();
     if (message == "")
         return
-    rollsClient.publish({
-        destination: "/app/roll/" + roomId,
-        body: JSON.stringify({
-            'name' : $("#name").val(),
-            'request' : message,
-        }),
-        headers: {}}
-    );
+    ws.send(JSON.stringify({
+        'name' : $("#name").val(),
+        'request' : message,
+    }));
     $("#message").val("");
 }
 
