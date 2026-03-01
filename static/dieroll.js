@@ -14,13 +14,28 @@ $(document).ready(
         $("#rolld6").click(() => {roll("d6")});
     });
 
-function connectRolls() {
+function connectRolls(pendingSend) {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     ws = new WebSocket(`${protocol}//${window.location.host}/ws/${roomId}`);
+    ws.onopen = function() {
+        if (pendingSend) ws.send(pendingSend);
+    };
     ws.onmessage = function(event) {
         showRoll(JSON.parse(event.data));
         scrollTop();
     };
+    ws.onclose = function() {
+        setTimeout(connectRolls, 1000);
+    };
+}
+
+function send(data) {
+    const msg = JSON.stringify(data);
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(msg);
+    } else {
+        connectRolls(msg);
+    }
 }
 
 function initializeNames() {
@@ -45,10 +60,7 @@ function formatTimestamp(timestamp) {
 }
 
 function roll(request) {
-    ws.send(JSON.stringify({
-        'name' : $("#name").val(),
-        'request' : request
-    }));
+    send({'name': $("#name").val(), 'request': request});
 }
 
 var n = 0
@@ -90,10 +102,7 @@ function talk() {
     const message = $("#message").val();
     if (message == "")
         return
-    ws.send(JSON.stringify({
-        'name' : $("#name").val(),
-        'request' : message,
-    }));
+    send({'name': $("#name").val(), 'request': message});
     $("#message").val("");
 }
 
