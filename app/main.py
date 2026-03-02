@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import re
@@ -16,26 +17,7 @@ from starlette.requests import Request
 ROLL_PATTERN = re.compile(r"^d\d{1,10}(?:,d\d{1,10}){0,9}$")
 
 redis_client: aioredis.Redis = None
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global redis_client
-    redis_url = os.environ.get("REDIS_URL")
-    if redis_url:
-        redis_client = aioredis.from_url(redis_url)
-    else:
-        host = os.environ.get("REDISHOST", "localhost")
-        port = int(os.environ.get("REDISPORT", 6379))
-        password = os.environ.get("REDISPASSWORD")
-        redis_client = aioredis.Redis(host=host, port=port, password=password)
-    yield
-    await redis_client.aclose()
-
-
-app = FastAPI(lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+pubsub: aioredis.client.PubSub = None
 
 
 class ConnectionManager:
@@ -44,15 +26,19 @@ class ConnectionManager:
 
     async def connect(self, room_id: str, websocket: WebSocket):
         await websocket.accept()
-        self.rooms.setdefault(room_id, set()).add(websocket)
+        if room_id not in self.rooms:
+            self.rooms[room_id] = set()
+            await pubsub.subscribe(f"room:{room_id}")
+        self.rooms[room_id].add(websocket)
 
-    def disconnect(self, room_id: str, websocket: WebSocket):
+    async def disconnect(self, room_id: str, websocket: WebSocket):
         room = self.rooms.get(room_id, set())
         room.discard(websocket)
         if not room:
             self.rooms.pop(room_id, None)
+            await pubsub.unsubscribe(f"room:{room_id}")
 
-    async def broadcast(self, room_id: str, message: str):
+    async def broadcast_local(self, room_id: str, message: str):
         dead = set()
         for ws in self.rooms.get(room_id, set()):
             try:
@@ -60,10 +46,41 @@ class ConnectionManager:
             except Exception:
                 dead.add(ws)
         for ws in dead:
-            self.disconnect(room_id, ws)
+            self.rooms.get(room_id, set()).discard(ws)
 
 
 manager = ConnectionManager()
+
+
+async def redis_listener():
+    async for message in pubsub.listen():
+        if message["type"] == "message":
+            room_id = message["channel"].decode().removeprefix("room:")
+            await manager.broadcast_local(room_id, message["data"].decode())
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global redis_client, pubsub
+    redis_url = os.environ.get("REDIS_URL")
+    if redis_url:
+        redis_client = aioredis.from_url(redis_url)
+    else:
+        host = os.environ.get("REDISHOST", "localhost")
+        port = int(os.environ.get("REDISPORT", 6379))
+        password = os.environ.get("REDISPASSWORD")
+        redis_client = aioredis.Redis(host=host, port=port, password=password)
+    pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
+    await pubsub.subscribe("__init__")
+    asyncio.create_task(redis_listener())
+    yield
+    await pubsub.aclose()
+    await redis_client.aclose()
+
+
+app = FastAPI(lifespan=lifespan)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 
 @app.get("/rooms/{room_id}", response_class=HTMLResponse)
@@ -106,6 +123,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             }
             payload = json.dumps(roll)
             await redis_client.zadd(room_id, {payload: roll["timestamp"]})
-            await manager.broadcast(room_id, payload)
+            await redis_client.publish(f"room:{room_id}", payload)
     except WebSocketDisconnect:
-        manager.disconnect(room_id, websocket)
+        await manager.disconnect(room_id, websocket)
