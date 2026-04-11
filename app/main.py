@@ -39,14 +39,19 @@ class ConnectionManager:
             await pubsub.unsubscribe(f"room:{room_id}")
 
     async def broadcast_local(self, room_id: str, message: str):
-        dead = set()
-        for ws in self.rooms.get(room_id, set()):
+        async def try_send(ws):
             try:
                 await ws.send_text(message)
+                return None
             except Exception:
-                dead.add(ws)
-        for ws in dead:
-            self.rooms.get(room_id, set()).discard(ws)
+                return ws
+
+        results = await asyncio.gather(
+            *[try_send(ws) for ws in self.rooms.get(room_id, set())]
+        )
+        for ws in results:
+            if ws is not None:
+                self.rooms.get(room_id, set()).discard(ws)
 
 
 manager = ConnectionManager()
@@ -56,7 +61,7 @@ async def redis_listener():
     async for message in pubsub.listen():
         if message["type"] == "message":
             room_id = message["channel"].decode().removeprefix("room:")
-            await manager.broadcast_local(room_id, message["data"].decode())
+            asyncio.create_task(manager.broadcast_local(room_id, message["data"].decode()))
 
 
 @asynccontextmanager

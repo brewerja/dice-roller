@@ -32,7 +32,6 @@ function connectRolls(pendingSend) {
         heartbeatInterval = setInterval(function() {
             if (Date.now() - lastPongTime > 10000) {
                 ws.close();
-                connectRolls();
             } else {
                 ws.send(JSON.stringify({name: '', request: 'ping'}));
             }
