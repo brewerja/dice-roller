@@ -2,18 +2,25 @@
 
 Simple app to have chat/dice-rolling rooms.
 
-### Run from code:
+Live at: https://ip-dice-roller.fly.dev/
 
+### Run locally (requires Docker for Redis):
+
+```bash
+docker run --rm -d -p 6379:6379 redis
+uv run uvicorn app.main:app --reload
 ```
-docker run --rm -d -p 6379:6379 redis 
-./mvnw spring-boot:run
-```
+
+App runs on `http://localhost:8000`.
 
 ### Build the image:
 
-`./mvnw spring-boot:build-image -Dspring-boot.build-image.imageName=brewerja/dice-roller`
+```bash
+docker build -t brewerja/dice-roller .
+```
 
 ### Run a container:
 
-`docker run -p 8080:8080 brewerja/dice-roller:latest`
-
+```bash
+docker run -p 8000:8000 brewerja/dice-roller
+```

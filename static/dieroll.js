@@ -1,9 +1,12 @@
 var PLAYER_NAME_KEY = "playerName";
-var rollsClient;
+var ws;
+var lastPongTime = Date.now();
+var heartbeatInterval;
+var lastDisplayedTimestamp = 0;
+var displayedTimestamps = new Set();
 
 $(document).ready(
     function() {
-        $.get(`/rooms/${roomId}/rolls`, showPriorRolls).done(scrollTop);
         initializeNames();
         addNameSaveHandlers();
         connectRolls();
@@ -14,19 +17,47 @@ $(document).ready(
         $("#rolld6").click(() => {roll("d6")});
     });
 
-function connectRolls() {
-    rollsClient = new StompJs.Client({
-        brokerURL: 'wss://' + window.location.host + '/roll',
-        heartbeatIncoming: 30000,
-        heartbeatOutgoing: 30000,
-    });
-    rollsClient.onConnect = function(frame) {
-        rollsClient.subscribe('/topic/rolls/' + roomId, function(dieRoll) {
-            showRoll(JSON.parse(dieRoll.body));
+function connectRolls(pendingSend) {
+    clearInterval(heartbeatInterval);
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    ws = new WebSocket(`${protocol}//${window.location.host}/ws/${roomId}`);
+    ws.onopen = function() {
+        $('#connStatus').attr('class', 'text-success').attr('title', 'Connected');
+        lastPongTime = Date.now();
+        $.get(`/rooms/${roomId}/rolls`, function(rolls) {
+            rolls.filter(r => r.timestamp > lastDisplayedTimestamp).forEach(showRoll);
             scrollTop();
         });
+        if (pendingSend) ws.send(pendingSend);
+        heartbeatInterval = setInterval(function() {
+            if (Date.now() - lastPongTime > 10000) {
+                ws.close();
+            } else {
+                ws.send(JSON.stringify({name: '', request: 'ping'}));
+            }
+        }, 5000);
     };
-    rollsClient.activate();
+    ws.onmessage = function(event) {
+        lastPongTime = Date.now();
+        const data = JSON.parse(event.data);
+        if (data.pong) return;
+        showRoll(data);
+        scrollTop();
+    };
+    ws.onclose = function() {
+        $('#connStatus').attr('class', 'text-danger').attr('title', 'Reconnecting...');
+        clearInterval(heartbeatInterval);
+        setTimeout(connectRolls, 1000);
+    };
+}
+
+function send(data) {
+    const msg = JSON.stringify(data);
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(msg);
+    } else {
+        connectRolls(msg);
+    }
 }
 
 function initializeNames() {
@@ -51,14 +82,7 @@ function formatTimestamp(timestamp) {
 }
 
 function roll(request) {
-    rollsClient.publish({
-        destination: "/app/roll/" + roomId,
-        body: JSON.stringify({
-            'name' : $("#name").val(),
-            'request' : request
-        }),
-        headers: {},
-    });
+    send({'name': $("#name").val(), 'request': request});
 }
 
 var n = 0
@@ -100,14 +124,7 @@ function talk() {
     const message = $("#message").val();
     if (message == "")
         return
-    rollsClient.publish({
-        destination: "/app/roll/" + roomId,
-        body: JSON.stringify({
-            'name' : $("#name").val(),
-            'request' : message,
-        }),
-        headers: {}}
-    );
+    send({'name': $("#name").val(), 'request': message});
     $("#message").val("");
 }
 
@@ -129,6 +146,9 @@ function getRequestDisplay(request, results) {
 }
 
 function showRoll(roll) {
+    if (displayedTimestamps.has(roll.timestamp)) return;
+    displayedTimestamps.add(roll.timestamp);
+    if (roll.timestamp > lastDisplayedTimestamp) lastDisplayedTimestamp = roll.timestamp;
     const ul = $('#rollList');
     ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
     if (roll.results == null) {
