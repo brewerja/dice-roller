@@ -90,7 +90,7 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/rooms/{room_id}", response_class=HTMLResponse)
 async def room(request: Request, room_id: str):
-    return templates.TemplateResponse("room.html", {"request": request, "room_id": room_id})
+    return templates.TemplateResponse(request, "room.html", {"room_id": room_id})
 
 
 @app.get("/rooms/{room_id}/rolls")
