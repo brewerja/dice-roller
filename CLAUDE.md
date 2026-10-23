@@ -21,7 +21,10 @@ uv sync
 docker build -t brewerja/dice-roller .
 ```
 
-There are no tests in this project.
+**Run tests:**
+```bash
+uv run python test_fix.py
+```
 
 ## Architecture
 
