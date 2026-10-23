@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
-ROLL_PATTERN = re.compile(r"^d\d{1,10}(?:,d\d{1,10}){0,9}$")
+ROLL_PATTERN = re.compile(r"^d[1-9]\d{0,9}(?:,d[1-9]\d{0,9}){0,9}$")
 
 
 def create_redis_client() -> aioredis.Redis:
@@ -109,7 +109,12 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
     await manager.connect(room_id, websocket)
     try:
         while True:
-            data = await websocket.receive_json()
+            try:
+                data = await websocket.receive_json()
+            except ValueError:
+                continue  # not valid JSON; ignore it and keep the connection
+            if not isinstance(data, dict):
+                continue
             name = nh3.clean(str(data.get("name", "")))
             request = nh3.clean(str(data.get("request", "")))
 
@@ -134,4 +139,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             await redis_client.zadd(room_id, {payload: roll["timestamp"]})
             await redis_client.publish(f"room:{room_id}", payload)
     except WebSocketDisconnect:
+        pass
+    finally:
         await manager.disconnect(room_id, websocket)

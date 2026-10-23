@@ -20,8 +20,11 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "complexipy>=8.1.0",
+    "fakeredis>=2.40.0",
+    "httpx2>=2.16.0",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
+    "pytest-timeout>=2.4.0",
     "ruff>=0.17.2",
     "ty>=0.0.91",
 ]
@@ -29,3 +32,4 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+timeout = 10
