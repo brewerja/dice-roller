@@ -43,7 +43,7 @@ class ConnectionManager:
             try:
                 await ws.send_text(message)
                 return None
-            except Exception:
+            except Exception:  # noqa: BLE001 - any send failure means the socket is dead
                 return ws
 
         results = await asyncio.gather(
@@ -61,7 +61,9 @@ async def redis_listener():
     async for message in pubsub.listen():
         if message["type"] == "message":
             room_id = message["channel"].decode().removeprefix("room:")
-            asyncio.create_task(manager.broadcast_local(room_id, message["data"].decode()))
+            asyncio.create_task(
+                manager.broadcast_local(room_id, message["data"].decode())
+            )
 
 
 @asynccontextmanager
@@ -72,7 +74,7 @@ async def lifespan(app: FastAPI):
         redis_client = aioredis.from_url(redis_url)
     else:
         host = os.environ.get("REDISHOST", "localhost")
-        port = int(os.environ.get("REDISPORT", 6379))
+        port = int(os.environ.get("REDISPORT", "6379"))
         password = os.environ.get("REDISPASSWORD")
         redis_client = aioredis.Redis(host=host, port=port, password=password)
     pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
@@ -115,8 +117,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             results = None
             if ROLL_PATTERN.match(request):
                 results = [
-                    secrets.randbelow(int(part[1:])) + 1
-                    for part in request.split(",")
+                    secrets.randbelow(int(part[1:])) + 1 for part in request.split(",")
                 ]
 
             roll = {

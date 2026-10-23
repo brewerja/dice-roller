@@ -23,7 +23,7 @@ docker build -t brewerja/dice-roller .
 
 **Run tests:**
 ```bash
-uv run python test_fix.py
+uv run pytest
 ```
 
 ## Architecture
