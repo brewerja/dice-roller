@@ -2,10 +2,4 @@
 __pycache__/
 *.pyc
 .venv/
-
-# Maven
-.repository/
-target/
-
-# IntelliJ
-.idea/
+.complexipy_cache/
