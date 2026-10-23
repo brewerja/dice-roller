@@ -10,6 +10,7 @@ Fix 2 (broadcast_local): asyncio.gather() sends to all clients in a room
 
 Each test simulates a slow WebSocket (2s send delay) alongside a fast one.
 """
+
 import asyncio
 import time
 
@@ -28,41 +29,43 @@ class MockWebSocket:
 
 # ── Old broadcast_local (sequential sends) ───────────────────────────────────
 
+
 class ConnectionManagerOld:
     def __init__(self):
-        self.rooms: dict[str, set] = {}
+        self.rooms: dict[str, list[MockWebSocket]] = {}
 
     async def broadcast_local(self, room_id: str, message: str):
         dead = set()
-        for ws in self.rooms.get(room_id, set()):
+        for ws in self.rooms.get(room_id, []):
             try:
                 await ws.send_text(message)
-            except Exception:
+            except Exception:  # noqa: BLE001 - any send failure means the socket is dead
                 dead.add(ws)
         for ws in dead:
-            self.rooms.get(room_id, set()).discard(ws)
+            self.rooms.get(room_id, []).remove(ws)
 
 
 # ── New broadcast_local (concurrent sends via asyncio.gather) ─────────────────
 
+
 class ConnectionManagerNew:
     def __init__(self):
-        self.rooms: dict[str, set] = {}
+        self.rooms: dict[str, list[MockWebSocket]] = {}
 
     async def broadcast_local(self, room_id: str, message: str):
         async def try_send(ws):
             try:
                 await ws.send_text(message)
                 return None
-            except Exception:
+            except Exception:  # noqa: BLE001 - any send failure means the socket is dead
                 return ws
 
         results = await asyncio.gather(
-            *[try_send(ws) for ws in self.rooms.get(room_id, set())]
+            *[try_send(ws) for ws in self.rooms.get(room_id, [])]
         )
         for ws in results:
             if ws is not None:
-                self.rooms.get(room_id, set()).discard(ws)
+                self.rooms.get(room_id, []).remove(ws)
 
 
 def make_room(manager):
@@ -75,6 +78,7 @@ def make_room(manager):
 
 # ── Test 1: Fix 2 alone — broadcast_local sends concurrently ─────────────────
 
+
 async def test_fix2_concurrent_sends():
     """
     Within a single broadcast, a slow client must not delay a fast client.
@@ -85,7 +89,7 @@ async def test_fix2_concurrent_sends():
 
     # Old: sequential
     mgr_old = ConnectionManagerOld()
-    slow, fast = make_room(mgr_old)
+    _slow, fast = make_room(mgr_old)
     start = time.monotonic()
     await mgr_old.broadcast_local("room1", "roll_1")
     fast_delay_old = fast.received[0][1] - start
@@ -93,18 +97,21 @@ async def test_fix2_concurrent_sends():
 
     # New: concurrent
     mgr_new = ConnectionManagerNew()
-    slow, fast = make_room(mgr_new)
+    _slow, fast = make_room(mgr_new)
     start = time.monotonic()
     await mgr_new.broadcast_local("room1", "roll_1")
     fast_delay_new = fast.received[0][1] - start
     print(f"  NEW concurrent: fast_ws got message at {fast_delay_new:.2f}s")
 
     assert fast_delay_old > 1.9, f"Expected old to block, got {fast_delay_old:.2f}s"
-    assert fast_delay_new < 0.1, f"Expected new to be instant, got {fast_delay_new:.2f}s"
+    assert fast_delay_new < 0.1, (
+        f"Expected new to be instant, got {fast_delay_new:.2f}s"
+    )
     print("  PASS")
 
 
 # ── Test 2: Fix 1 alone — listener doesn't block on the next Redis message ────
+
 
 async def test_fix1_listener_nonblocking():
     """
@@ -122,11 +129,12 @@ async def test_fix1_listener_nonblocking():
         fast_ws = MockWebSocket("fast", delay=0)
         mgr.rooms["room1"] = [slow_ws, fast_ws]
 
-        start = time.monotonic()
         messages = [("room1", "roll_1"), ("room1", "roll_2")]
 
         if use_create_task:
-            tasks = [asyncio.create_task(mgr.broadcast_local(r, m)) for r, m in messages]
+            tasks = [
+                asyncio.create_task(mgr.broadcast_local(r, m)) for r, m in messages
+            ]
             await asyncio.gather(*tasks)
         else:
             for room_id, payload in messages:
@@ -136,27 +144,18 @@ async def test_fix1_listener_nonblocking():
 
     fast_old = await run(use_create_task=False)
     t_roll2_old = fast_old.received[1][1] - fast_old.received[0][1]
-    print(f"  OLD (await):       gap between roll_1 and roll_2 delivery: {t_roll2_old:.2f}s")
+    print(
+        f"  OLD (await):       gap between roll_1 and roll_2 delivery: {t_roll2_old:.2f}s"
+    )
 
     fast_new = await run(use_create_task=True)
     t_roll2_new = fast_new.received[1][1] - fast_new.received[0][1]
-    print(f"  NEW (create_task): gap between roll_1 and roll_2 delivery: {t_roll2_new:.2f}s")
+    print(
+        f"  NEW (create_task): gap between roll_1 and roll_2 delivery: {t_roll2_new:.2f}s"
+    )
 
     # Old: roll_1 takes 2s (slow_ws), then roll_2 starts → gap ≥ 2s.
     # New: both start concurrently → gap ≈ 0s.
     assert t_roll2_old > 1.9, f"Expected old gap ≥ 2s, got {t_roll2_old:.2f}s"
     assert t_roll2_new < 0.1, f"Expected new gap ≈ 0s, got {t_roll2_new:.2f}s"
     print("  PASS")
-
-
-async def main():
-    print("=" * 60)
-    print("Verifying fixes for: site locking up / rolls not showing")
-    print("=" * 60)
-    await test_fix2_concurrent_sends()
-    await test_fix1_listener_nonblocking()
-    print("\n" + "=" * 60)
-    print("ALL TESTS PASSED")
-
-
-asyncio.run(main())

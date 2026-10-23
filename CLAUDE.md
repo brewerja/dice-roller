@@ -21,11 +21,14 @@ uv sync
 docker build -t brewerja/dice-roller .
 ```
 
-There are no tests in this project.
+**Run tests:**
+```bash
+uv run pytest
+```
 
 ## Architecture
 
-FastAPI / Python 3.12 real-time dice-rolling app using plain WebSockets with Redis persistence.
+FastAPI / Python 3.15 real-time dice-rolling app using plain WebSockets with Redis persistence.
 
 **Request flow:**
 1. Browser loads `templates/room.html` (Jinja2) at `GET /rooms/{room_id}`
@@ -41,7 +44,7 @@ FastAPI / Python 3.12 real-time dice-rolling app using plain WebSockets with Red
 - `static/index.html` — landing page
 - `pyproject.toml` — Python dependencies (fastapi, uvicorn, redis, jinja2, nh3)
 
-**Dice notation regex:** `^d\d{1,10}(?:,d\d{1,10}){0,9}$`
+**Dice notation regex:** `^d[1-9]\d{0,9}(?:,d[1-9]\d{0,9}){0,9}$`
 
 **Environment variables:**
 - `REDIS_URL` — full Redis URL (used on fly.io with Upstash)
