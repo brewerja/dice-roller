@@ -5,6 +5,7 @@ import re
 import secrets
 import time
 from contextlib import asynccontextmanager
+from typing import cast
 
 import nh3
 import redis.asyncio as aioredis
@@ -16,8 +17,20 @@ from starlette.requests import Request
 
 ROLL_PATTERN = re.compile(r"^d\d{1,10}(?:,d\d{1,10}){0,9}$")
 
-redis_client: aioredis.Redis = None
-pubsub: aioredis.client.PubSub = None
+
+def create_redis_client() -> aioredis.Redis:
+    redis_url = os.environ.get("REDIS_URL")
+    if redis_url:
+        return aioredis.from_url(redis_url)
+    host = os.environ.get("REDISHOST", "localhost")
+    port = int(os.environ.get("REDISPORT", "6379"))
+    password = os.environ.get("REDISPASSWORD")
+    return aioredis.Redis(host=host, port=port, password=password)
+
+
+# Neither connects until first use, so it's safe to create them at import time.
+redis_client = create_redis_client()
+pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
 
 
 class ConnectionManager:
@@ -68,16 +81,6 @@ async def redis_listener():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global redis_client, pubsub
-    redis_url = os.environ.get("REDIS_URL")
-    if redis_url:
-        redis_client = aioredis.from_url(redis_url)
-    else:
-        host = os.environ.get("REDISHOST", "localhost")
-        port = int(os.environ.get("REDISPORT", "6379"))
-        password = os.environ.get("REDISPASSWORD")
-        redis_client = aioredis.Redis(host=host, port=port, password=password)
-    pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
     await pubsub.subscribe("__init__")
     asyncio.create_task(redis_listener())
     yield
@@ -97,7 +100,7 @@ async def room(request: Request, room_id: str):
 
 @app.get("/rooms/{room_id}/rolls")
 async def get_rolls(room_id: str):
-    raw = await redis_client.zrange(room_id, -100, -1)
+    raw = cast(list[bytes], await redis_client.zrange(room_id, -100, -1))
     return [json.loads(r) for r in raw]
 
 

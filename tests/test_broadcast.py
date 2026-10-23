@@ -32,17 +32,17 @@ class MockWebSocket:
 
 class ConnectionManagerOld:
     def __init__(self):
-        self.rooms: dict[str, set] = {}
+        self.rooms: dict[str, list[MockWebSocket]] = {}
 
     async def broadcast_local(self, room_id: str, message: str):
         dead = set()
-        for ws in self.rooms.get(room_id, set()):
+        for ws in self.rooms.get(room_id, []):
             try:
                 await ws.send_text(message)
             except Exception:  # noqa: BLE001 - any send failure means the socket is dead
                 dead.add(ws)
         for ws in dead:
-            self.rooms.get(room_id, set()).discard(ws)
+            self.rooms.get(room_id, []).remove(ws)
 
 
 # ── New broadcast_local (concurrent sends via asyncio.gather) ─────────────────
@@ -50,7 +50,7 @@ class ConnectionManagerOld:
 
 class ConnectionManagerNew:
     def __init__(self):
-        self.rooms: dict[str, set] = {}
+        self.rooms: dict[str, list[MockWebSocket]] = {}
 
     async def broadcast_local(self, room_id: str, message: str):
         async def try_send(ws):
@@ -61,11 +61,11 @@ class ConnectionManagerNew:
                 return ws
 
         results = await asyncio.gather(
-            *[try_send(ws) for ws in self.rooms.get(room_id, set())]
+            *[try_send(ws) for ws in self.rooms.get(room_id, [])]
         )
         for ws in results:
             if ws is not None:
-                self.rooms.get(room_id, set()).discard(ws)
+                self.rooms.get(room_id, []).remove(ws)
 
 
 def make_room(manager):
