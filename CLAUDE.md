@@ -28,7 +28,7 @@ uv run pytest
 
 ## Architecture
 
-FastAPI / Python 3.12 real-time dice-rolling app using plain WebSockets with Redis persistence.
+FastAPI / Python 3.15 real-time dice-rolling app using plain WebSockets with Redis persistence.
 
 **Request flow:**
 1. Browser loads `templates/room.html` (Jinja2) at `GET /rooms/{room_id}`
