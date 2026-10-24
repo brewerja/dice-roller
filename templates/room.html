@@ -17,6 +17,8 @@
 body { height: 100vh; height: 100dvh; }
 #rollContainer { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 #rollList li.mine { box-shadow: inset 0.35rem 0 0 var(--bs-warning); }
+/* Lighter than Bootstrap's default so hints don't look like typed text; still 4.7:1 contrast on white. */
+input.form-control::placeholder { color: var(--bs-gray-600); }
 
 /* Larger text on bigger screens. Phones keep 16px, which also stops iOS zooming in on inputs. */
 @media (min-width: 576px) { html { font-size: 1.5rem; } }
