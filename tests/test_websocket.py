@@ -42,6 +42,19 @@ def test_roll(client):
     assert all(1 <= n <= 6 for n in result["results"])
 
 
+def test_same_millisecond_rolls_are_kept_apart(client, monkeypatch):
+    # Same player, same roll, same result, same millisecond: without an ID the
+    # two payloads would be identical and Redis would store them as one.
+    monkeypatch.setattr(main.time, "time", lambda: 1_700_000_000.0)
+    monkeypatch.setattr(main.secrets, "randbelow", lambda n: 0)
+    with client.websocket_connect("/ws/room1") as ws:
+        first = roll(ws, "d6")
+        second = roll(ws, "d6")
+    assert first["timestamp"] == second["timestamp"]
+    assert first["id"] != second["id"]
+    assert len(client.get("/rooms/room1/rolls").json()) == 2
+
+
 def test_d0_is_chat_and_keeps_connection(client):
     with client.websocket_connect("/ws/room1") as ws:
         result = roll(ws, "d0")
