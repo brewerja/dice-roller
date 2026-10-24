@@ -18,6 +18,12 @@ from starlette.requests import Request
 
 ROLL_PATTERN = re.compile(r"^d[1-9]\d{0,9}(?:,d[1-9]\d{0,9}){0,9}$")
 LISTENER_RETRY_SECONDS = 1.0
+# Fail Redis commands and connection attempts instead of waiting forever on a dead connection.
+REDIS_TIMEOUT_SECONDS = 10
+# Ping the pub/sub connection when it's been quiet this long, and reconnect if
+# nothing at all (not even the ping's reply) has arrived in PUBSUB_TIMEOUT_SECONDS.
+PUBSUB_PING_SECONDS = 30
+PUBSUB_TIMEOUT_SECONDS = 75
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -25,11 +31,18 @@ logger = logging.getLogger("uvicorn.error")
 def create_redis_client() -> aioredis.Redis:
     redis_url = os.environ.get("REDIS_URL")
     if redis_url:
-        return aioredis.from_url(redis_url)
-    host = os.environ.get("REDISHOST", "localhost")
-    port = int(os.environ.get("REDISPORT", "6379"))
-    password = os.environ.get("REDISPASSWORD")
-    return aioredis.Redis(host=host, port=port, password=password)
+        return aioredis.from_url(
+            redis_url,
+            socket_timeout=REDIS_TIMEOUT_SECONDS,
+            socket_connect_timeout=REDIS_TIMEOUT_SECONDS,
+        )
+    return aioredis.Redis(
+        host=os.environ.get("REDISHOST", "localhost"),
+        port=int(os.environ.get("REDISPORT", "6379")),
+        password=os.environ.get("REDISPASSWORD"),
+        socket_timeout=REDIS_TIMEOUT_SECONDS,
+        socket_connect_timeout=REDIS_TIMEOUT_SECONDS,
+    )
 
 
 # Neither connects until first use, so it's safe to create them at import time.
@@ -84,17 +97,36 @@ def run_in_background(coro):
     task.add_done_callback(background_tasks.discard)
 
 
+async def listen_for_rolls():
+    # pubsub.listen() would block forever on a connection that died silently, so
+    # read with a timeout and ping when it's quiet to confirm Redis is still there.
+    last_heard = time.monotonic()
+    while True:
+        message = await pubsub.get_message(timeout=PUBSUB_PING_SECONDS)
+        if message is not None:
+            last_heard = time.monotonic()
+            if message["type"] == "message":
+                room_id = message["channel"].decode().removeprefix("room:")
+                run_in_background(
+                    manager.broadcast_local(room_id, message["data"].decode())
+                )
+        elif time.monotonic() - last_heard > PUBSUB_TIMEOUT_SECONDS:
+            # The next get_message() reconnects and resubscribes to every room.
+            if pubsub.connection:
+                await pubsub.connection.disconnect(nowait=True)
+            raise aioredis.ConnectionError(
+                f"No reply from Redis pub/sub in {PUBSUB_TIMEOUT_SECONDS}s"
+            )
+        else:
+            await pubsub.ping()
+
+
 async def redis_listener():
     # redis-py reconnects and resubscribes on its own after a brief drop, but gives
     # up after a few retries. Keep listening for the life of the app regardless.
     while True:
         try:
-            async for message in pubsub.listen():
-                if message["type"] == "message":
-                    room_id = message["channel"].decode().removeprefix("room:")
-                    run_in_background(
-                        manager.broadcast_local(room_id, message["data"].decode())
-                    )
+            await listen_for_rolls()
         except Exception:
             logger.exception(
                 "Redis listener failed; retrying in %ss", LISTENER_RETRY_SECONDS
