@@ -36,6 +36,7 @@ function connectRolls() {
         $('#connStatus').attr('class', 'text-success').attr('title', 'Connected');
         lastPongTime = Date.now();
         $.get(`/rooms/${roomId}/rolls`, function(rolls) {
+            $("#loading").remove();
             rolls.forEach(showRoll);
             scrollTop();
         });
