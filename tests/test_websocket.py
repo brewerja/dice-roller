@@ -90,15 +90,13 @@ def test_heartbeat_gets_pong(client):
     with client.websocket_connect("/ws/room1") as ws:
         ws.send_json({"type": "ping"})
         assert ws.receive_json() == {"pong": True}
-        ws.send_json({"name": "", "request": "ping"})  # from tabs opened before this
-        assert ws.receive_json() == {"pong": True}
     assert client.get("/rooms/room1/rolls").json() == []
 
 
 def test_player_can_say_ping(client):
     with client.websocket_connect("/ws/room1") as ws:
-        result = roll(ws, "ping")
-    assert result["name"] == "Tester"
+        ws.send_json({"name": "", "request": "ping"})
+        result = ws.receive_json()
     assert result["request"] == "ping"
 
 

@@ -191,10 +191,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 continue  # not valid JSON; ignore it and keep the connection
             if not isinstance(data, dict):
                 continue
-            # Tabs opened before the heartbeat had its own type still send it as a
-            # nameless "ping" message, so answer that too until they've been reloaded.
-            legacy_ping = data.get("name") == "" and data.get("request") == "ping"
-            if data.get("type") == "ping" or legacy_ping:
+            if data.get("type") == "ping":
                 await websocket.send_text('{"pong":true}')
                 continue
             name = nh3.clean(
