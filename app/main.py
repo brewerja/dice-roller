@@ -187,6 +187,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 ]
 
             roll = {
+                "id": secrets.token_hex(8),
                 "roomId": room_id,
                 "name": name,
                 "timestamp": int(time.time() * 1000),

@@ -4,8 +4,7 @@ var lastPongTime = Date.now();
 var heartbeatInterval;
 var reconnectTimer = null;
 var pendingMessages = [];
-var lastDisplayedTimestamp = 0;
-var displayedTimestamps = new Set();
+var displayedRolls = new Set();
 
 $(document).ready(
     function() {
@@ -37,7 +36,7 @@ function connectRolls() {
         $('#connStatus').attr('class', 'text-success').attr('title', 'Connected');
         lastPongTime = Date.now();
         $.get(`/rooms/${roomId}/rolls`, function(rolls) {
-            rolls.filter(r => r.timestamp > lastDisplayedTimestamp).forEach(showRoll);
+            rolls.forEach(showRoll);
             scrollTop();
         });
         while (pendingMessages.length) socket.send(pendingMessages.shift());
@@ -163,9 +162,10 @@ function getRequestDisplay(request, results) {
 }
 
 function showRoll(roll) {
-    if (displayedTimestamps.has(roll.timestamp)) return;
-    displayedTimestamps.add(roll.timestamp);
-    if (roll.timestamp > lastDisplayedTimestamp) lastDisplayedTimestamp = roll.timestamp;
+    // Rolls saved before IDs were added only have a timestamp to tell them apart.
+    const key = roll.id ?? roll.timestamp;
+    if (displayedRolls.has(key)) return;
+    displayedRolls.add(key);
     const ul = $('#rollList');
     ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
     if (roll.results == null) {
