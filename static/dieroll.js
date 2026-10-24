@@ -2,6 +2,8 @@ var PLAYER_NAME_KEY = "playerName";
 var ws;
 var lastPongTime = Date.now();
 var heartbeatInterval;
+var reconnectTimer = null;
+var pendingMessages = [];
 var lastDisplayedTimestamp = 0;
 var displayedTimestamps = new Set();
 
@@ -17,47 +19,62 @@ $(document).ready(
         $("#rolld6").click(() => {roll("d6")});
     });
 
-function connectRolls(pendingSend) {
+// Only one socket is ever current. Opening a new one closes the old one, and
+// every handler ignores events from a socket that is no longer current.
+function connectRolls() {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
     clearInterval(heartbeatInterval);
+    if (ws) {
+        ws.onclose = null;
+        ws.close();
+    }
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    ws = new WebSocket(`${protocol}//${window.location.host}/ws/${roomId}`);
-    ws.onopen = function() {
+    const socket = new WebSocket(`${protocol}//${window.location.host}/ws/${roomId}`);
+    ws = socket;
+    socket.onopen = function() {
+        if (socket !== ws) return;
         $('#connStatus').attr('class', 'text-success').attr('title', 'Connected');
         lastPongTime = Date.now();
         $.get(`/rooms/${roomId}/rolls`, function(rolls) {
             rolls.filter(r => r.timestamp > lastDisplayedTimestamp).forEach(showRoll);
             scrollTop();
         });
-        if (pendingSend) ws.send(pendingSend);
+        while (pendingMessages.length) socket.send(pendingMessages.shift());
         heartbeatInterval = setInterval(function() {
             if (Date.now() - lastPongTime > 10000) {
-                ws.close();
+                // Don't wait on close(): a dead connection can take a long time to finish closing.
+                connectRolls();
             } else {
-                ws.send(JSON.stringify({name: '', request: 'ping'}));
+                socket.send(JSON.stringify({name: '', request: 'ping'}));
             }
         }, 5000);
     };
-    ws.onmessage = function(event) {
+    socket.onmessage = function(event) {
+        if (socket !== ws) return;
         lastPongTime = Date.now();
         const data = JSON.parse(event.data);
         if (data.pong) return;
         showRoll(data);
         scrollTop();
     };
-    ws.onclose = function() {
+    socket.onclose = function() {
+        if (socket !== ws) return;
         $('#connStatus').attr('class', 'text-danger').attr('title', 'Reconnecting...');
         clearInterval(heartbeatInterval);
-        setTimeout(connectRolls, 1000);
+        if (reconnectTimer === null) reconnectTimer = setTimeout(connectRolls, 1000);
     };
 }
 
+// Messages sent while disconnected are queued and sent once the socket opens.
 function send(data) {
     const msg = JSON.stringify(data);
     if (ws.readyState === WebSocket.OPEN) {
         ws.send(msg);
-    } else {
-        connectRolls(msg);
+        return;
     }
+    pendingMessages.push(msg);
+    if (ws.readyState !== WebSocket.CONNECTING) connectRolls();  // reconnect now rather than waiting for the timer
 }
 
 function initializeNames() {
