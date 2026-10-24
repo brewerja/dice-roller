@@ -29,6 +29,18 @@ def client(fake_redis):
         yield client
 
 
+def test_index_page(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "/rooms/" in response.text
+
+
+def test_favicon(client):
+    response = client.get("/favicon.ico")
+    assert response.status_code == 200
+    assert response.content.startswith(b"\x00\x00\x01\x00")  # .ico header
+
+
 def roll(ws, request):
     ws.send_json({"name": "Tester", "request": request})
     return ws.receive_json()
