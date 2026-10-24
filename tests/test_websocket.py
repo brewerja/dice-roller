@@ -94,6 +94,19 @@ def test_long_messages_are_cut_off(client):
     assert result["request"] == "m" * main.MAX_MESSAGE_CHARS
 
 
+def test_images_are_removed(client):
+    with client.websocket_connect("/ws/room1") as ws:
+        ws.send_json(
+            {
+                "name": '<img src="x.png">Tester',
+                "request": '<b>hi</b> <img src="x.png">',
+            }
+        )
+        result = ws.receive_json()
+    assert result["name"] == "Tester"
+    assert result["request"] == "<b>hi</b> "
+
+
 def test_room_keeps_only_newest_rolls(client, monkeypatch):
     monkeypatch.setattr(main, "MAX_ROLLS_PER_ROOM", 3)
     clock = iter(range(1_700_000_000, 1_700_000_100))

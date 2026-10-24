@@ -19,6 +19,8 @@ from starlette.requests import Request
 ROLL_PATTERN = re.compile(r"^d[1-9]\d{0,9}(?:,d[1-9]\d{0,9}){0,9}$")
 # Longer names and messages are cut off at this many characters.
 MAX_MESSAGE_CHARS = 500
+# HTML tags allowed in names and messages: nh3's defaults, minus images.
+ALLOWED_TAGS = nh3.ALLOWED_TAGS - {"img"}
 # Each room keeps only its newest rolls, and is deleted after this long with no rolls.
 MAX_ROLLS_PER_ROOM = 1000
 ROOM_TTL_SECONDS = 30 * 24 * 60 * 60
@@ -188,8 +190,12 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 continue  # not valid JSON; ignore it and keep the connection
             if not isinstance(data, dict):
                 continue
-            name = nh3.clean(str(data.get("name", ""))[:MAX_MESSAGE_CHARS])
-            request = nh3.clean(str(data.get("request", ""))[:MAX_MESSAGE_CHARS])
+            name = nh3.clean(
+                str(data.get("name", ""))[:MAX_MESSAGE_CHARS], tags=ALLOWED_TAGS
+            )
+            request = nh3.clean(
+                str(data.get("request", ""))[:MAX_MESSAGE_CHARS], tags=ALLOWED_TAGS
+            )
 
             if request == "ping":
                 await websocket.send_text('{"pong":true}')
