@@ -5,10 +5,12 @@ fakeredis in place of a Redis server.
 
 import asyncio
 import time
+from typing import cast
 
 import fakeredis
 import pytest
 import redis
+from fastapi import WebSocket
 from fastapi.testclient import TestClient
 from redis.asyncio.connection import AbstractConnection
 
@@ -39,6 +41,23 @@ def test_favicon(client):
     response = client.get("/favicon.ico")
     assert response.status_code == 200
     assert response.content.startswith(b"\x00\x00\x01\x00")  # .ico header
+
+
+class FakeSocket:
+    def __init__(self, delay=0.0, fail=False):
+        self.delay = delay
+        self.fail = fail
+        self.received: list[tuple[str, float]] = []
+
+    async def send_text(self, message):
+        await asyncio.sleep(self.delay)
+        if self.fail:
+            raise RuntimeError("socket closed")
+        self.received.append((message, time.monotonic()))
+
+
+def put_in_room(*sockets: FakeSocket):
+    main.manager.rooms["room1"] = cast(set[WebSocket], set(sockets))
 
 
 def roll(ws, request):
@@ -181,3 +200,34 @@ def test_listener_reconnects_when_pubsub_goes_silent(fake_redis, monkeypatch):
         time.sleep(0.2)
         result = roll(ws, "d6")
     assert len(result["results"]) == 1
+
+
+async def test_slow_socket_does_not_delay_others(fake_redis):
+    slow, fast = FakeSocket(delay=0.5), FakeSocket()
+    put_in_room(slow, fast)
+    start = time.monotonic()
+    await main.manager.broadcast_local("room1", "roll")
+    assert fast.received[0][1] - start < 0.1
+
+
+async def test_dead_socket_is_dropped_from_room(fake_redis):
+    dead, alive = FakeSocket(fail=True), FakeSocket()
+    put_in_room(dead, alive)
+    await main.manager.broadcast_local("room1", "roll")
+    assert main.manager.rooms["room1"] == {alive}
+    assert [m for m, _ in alive.received] == ["roll"]
+
+
+def test_listener_does_not_wait_for_slow_broadcasts(client):
+    # Each message's broadcast takes 1s because of the slow socket. The listener
+    # must hand off broadcasts without waiting, so the fast socket gets both rolls
+    # well before that.
+    slow, fast = FakeSocket(delay=1.0), FakeSocket()
+    client.portal.call(main.pubsub.subscribe, "room:room1")
+    put_in_room(slow, fast)
+    client.portal.call(main.redis_client.publish, "room:room1", "roll 1")
+    client.portal.call(main.redis_client.publish, "room:room1", "roll 2")
+    deadline = time.monotonic() + 0.8
+    while len(fast.received) < 2 and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert [m for m, _ in fast.received] == ["roll 1", "roll 2"]

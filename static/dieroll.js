@@ -88,11 +88,6 @@ function addNameSaveHandlers() {
     });
 }
 
-function showPriorRolls(rolls) {
-    rolls.forEach(showRoll);
-    $("#rollList").find("li").last().attr("class", "list-group-item list-group-item-secondary");
-}
-
 function formatTimestamp(timestamp) {
     return new Date(timestamp).toLocaleString('en-US', { hour12: true });
 }
