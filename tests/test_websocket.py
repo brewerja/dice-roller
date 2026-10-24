@@ -161,6 +161,21 @@ def test_room_cleaned_up_after_unexpected_error(client, monkeypatch):
     assert "room1" not in main.manager.rooms
 
 
+def test_room_gets_live_rolls_after_subscribe_fails(client, monkeypatch):
+    subscribe = main.pubsub.subscribe
+
+    async def fail_once(*args, **kwargs):
+        monkeypatch.setattr(main.pubsub, "subscribe", subscribe)
+        raise redis.ConnectionError("Redis is down")
+
+    monkeypatch.setattr(main.pubsub, "subscribe", fail_once)
+    with pytest.raises(redis.ConnectionError), client.websocket_connect("/ws/room1"):
+        pass
+    with client.websocket_connect("/ws/room1") as ws:
+        result = roll(ws, "d6")
+    assert result["request"] == "d6"
+
+
 def test_listener_recovers_after_redis_error(fake_redis, monkeypatch):
     monkeypatch.setattr(main, "LISTENER_RETRY_SECONDS", 0.01)
     real_get_message = main.pubsub.get_message

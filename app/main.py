@@ -63,10 +63,11 @@ class ConnectionManager:
 
     async def connect(self, room_id: str, websocket: WebSocket):
         await websocket.accept()
+        # Record the room only once it's subscribed. Otherwise a failed subscribe
+        # would leave the room looking subscribed, and it would never get live rolls.
         if room_id not in self.rooms:
-            self.rooms[room_id] = set()
             await pubsub.subscribe(f"room:{room_id}")
-        self.rooms[room_id].add(websocket)
+        self.rooms.setdefault(room_id, set()).add(websocket)
 
     async def disconnect(self, room_id: str, websocket: WebSocket):
         room = self.rooms.get(room_id, set())
