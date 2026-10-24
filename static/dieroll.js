@@ -86,6 +86,7 @@ function addNameSaveHandlers() {
     $('#name').change(function(){
         localStorage.setItem(PLAYER_NAME_KEY, $('#name').val());
     });
+    $('#name').on('input', () => markMyRolls($('#rollList li')));
 }
 
 function formatTimestamp(timestamp) {
@@ -162,18 +163,30 @@ function showRoll(roll) {
     if (displayedRolls.has(key)) return;
     displayedRolls.add(key);
     const ul = $('#rollList');
-    ul.find("li").last().attr("class", "list-group-item list-group-item-secondary");
+    ul.find("li").last().removeClass("list-group-item-primary").addClass("list-group-item-secondary");
+    let li;
     if (roll.results == null) {
-        ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(roll.timestamp)}">
-                       <span class="me-2">${roll.name}:</span>
-                       <span>${roll.request}</span>
-                   </li>`);
+        li = $(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(roll.timestamp)}">
+                    <span class="me-2">${roll.name}:</span>
+                    <span>${roll.request}</span>
+                </li>`);
     } else {
-        ul.append(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(roll.timestamp)}">
-                       <span class="me-2">${roll.name}</span>
-                       ${getRequestDisplay(roll.request, roll.results)}
-                       <span class="fs-6 fst-italic">${roll.request}</span>
-                   </li>`);
+        li = $(`<li class="list-group-item list-group-item-primary" title="${formatTimestamp(roll.timestamp)}">
+                    <span class="me-2">${roll.name}</span>
+                    ${getRequestDisplay(roll.request, roll.results)}
+                    <span class="fs-6 fst-italic">${roll.request}</span>
+                </li>`);
     }
+    // The server escapes names (& becomes &amp;), so compare the name as text.
+    li.attr("data-name", new DOMParser().parseFromString(roll.name, "text/html").body.textContent);
+    ul.append(li);
+    markMyRolls(li);
+}
 
+// Rolls made under the name in the name box get a colored edge.
+function markMyRolls(rows) {
+    const me = $("#name").val();
+    rows.each(function() {
+        $(this).toggleClass("mine", me !== "" && $(this).attr("data-name") === me);
+    });
 }
