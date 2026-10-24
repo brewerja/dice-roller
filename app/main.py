@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -6,6 +7,7 @@ import re
 import secrets
 import time
 from contextlib import asynccontextmanager, suppress
+from pathlib import Path
 from typing import cast
 
 import nh3
@@ -171,7 +173,14 @@ async def favicon():
 
 @app.get("/rooms/{room_id}", response_class=HTMLResponse)
 async def room(request: Request, room_id: str):
-    return templates.TemplateResponse(request, "room.html", {"room_id": room_id})
+    # The script's URL changes whenever the script does, so browsers can't keep
+    # using a cached old copy with a newer page.
+    script_version = hashlib.sha256(Path("static/dieroll.js").read_bytes()).hexdigest()[
+        :12
+    ]
+    return templates.TemplateResponse(
+        request, "room.html", {"room_id": room_id, "script_version": script_version}
+    )
 
 
 @app.get("/rooms/{room_id}/rolls")

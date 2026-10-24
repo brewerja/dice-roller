@@ -4,6 +4,7 @@ fakeredis in place of a Redis server.
 """
 
 import asyncio
+import hashlib
 import time
 from typing import cast
 
@@ -35,6 +36,13 @@ def test_index_page(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "/rooms/" in response.text
+
+
+def test_room_page_versions_its_script(client):
+    response = client.get("/rooms/room1")
+    with open("static/dieroll.js", "rb") as f:
+        version = hashlib.sha256(f.read()).hexdigest()[:12]
+    assert f'src="/static/dieroll.js?v={version}"' in response.text
 
 
 def test_favicon(client):
