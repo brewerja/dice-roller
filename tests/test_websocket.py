@@ -3,10 +3,14 @@ End-to-end tests of the real WebSocket endpoint in app/main.py, using
 fakeredis in place of a Redis server.
 """
 
+import asyncio
+import time
+
 import fakeredis
 import pytest
 import redis
 from fastapi.testclient import TestClient
+from redis.asyncio.connection import AbstractConnection
 
 from app import main
 
@@ -76,17 +80,53 @@ def test_room_cleaned_up_after_unexpected_error(client, monkeypatch):
 
 def test_listener_recovers_after_redis_error(fake_redis, monkeypatch):
     monkeypatch.setattr(main, "LISTENER_RETRY_SECONDS", 0.01)
-    real_listen = main.pubsub.listen
+    real_get_message = main.pubsub.get_message
     failures = []
 
-    def listen_failing_once():
+    async def get_message_failing_once(*args, **kwargs):
         if not failures:
             failures.append(True)
             raise redis.ConnectionError("Connection closed by server.")
-        return real_listen()
+        return await real_get_message(*args, **kwargs)
 
-    monkeypatch.setattr(main.pubsub, "listen", listen_failing_once)
+    monkeypatch.setattr(main.pubsub, "get_message", get_message_failing_once)
     with TestClient(main.app) as client, client.websocket_connect("/ws/room1") as ws:
         result = roll(ws, "d6")
     assert failures
+    assert len(result["results"]) == 1
+
+
+def test_listener_reconnects_when_pubsub_goes_silent(fake_redis, monkeypatch):
+    # Simulate a connection that died without an error: nothing arrives, not
+    # even ping replies, until the listener drops the connection.
+    monkeypatch.setattr(main, "LISTENER_RETRY_SECONDS", 0.01)
+    monkeypatch.setattr(main, "PUBSUB_PING_SECONDS", 0.01)
+    monkeypatch.setattr(main, "PUBSUB_TIMEOUT_SECONDS", 0.05)
+    real_get_message = main.pubsub.get_message
+    real_disconnect = AbstractConnection.disconnect
+    silent = [True]
+    disconnects = []
+
+    async def get_message(*args, **kwargs):
+        if silent[0]:
+            await asyncio.sleep(kwargs.get("timeout") or 0)
+            return None
+        return await real_get_message(*args, **kwargs)
+
+    async def disconnect(self, *args, **kwargs):
+        disconnects.append(kwargs)
+        silent[0] = False
+        return await real_disconnect(self, *args, **kwargs)
+
+    monkeypatch.setattr(main.pubsub, "get_message", get_message)
+    monkeypatch.setattr(AbstractConnection, "disconnect", disconnect)
+    with TestClient(main.app) as client, client.websocket_connect("/ws/room1") as ws:
+        # Rolls published while the connection is dead are lost, so wait for the
+        # listener to notice and reconnect before rolling.
+        deadline = time.monotonic() + 5
+        while not disconnects and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert disconnects, "listener never noticed the silent connection"
+        time.sleep(0.2)
+        result = roll(ws, "d6")
     assert len(result["results"]) == 1
