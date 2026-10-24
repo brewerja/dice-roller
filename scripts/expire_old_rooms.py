@@ -25,7 +25,7 @@ async def main(apply: bool):
         newest = await redis.zrange(key, -1, -1, withscores=True)
         if not newest:
             continue
-        expires_at = int(newest[0][1] / 1000) + ROOM_TTL_SECONDS
+        expires_at = int(float(newest[0][1]) / 1000) + ROOM_TTL_SECONDS
         count = await redis.zcard(key)
         extra = max(0, count - MAX_ROLLS_PER_ROOM)
         action = (
