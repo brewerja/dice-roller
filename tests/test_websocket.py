@@ -67,6 +67,32 @@ def test_same_millisecond_rolls_are_kept_apart(client, monkeypatch):
     assert len(client.get("/rooms/room1/rolls").json()) == 2
 
 
+def test_long_messages_are_cut_off(client):
+    with client.websocket_connect("/ws/room1") as ws:
+        ws.send_json({"name": "n" * 600, "request": "m" * 600})
+        result = ws.receive_json()
+    assert result["name"] == "n" * main.MAX_MESSAGE_CHARS
+    assert result["request"] == "m" * main.MAX_MESSAGE_CHARS
+
+
+def test_room_keeps_only_newest_rolls(client, monkeypatch):
+    monkeypatch.setattr(main, "MAX_ROLLS_PER_ROOM", 3)
+    clock = iter(range(1_700_000_000, 1_700_000_100))
+    monkeypatch.setattr(main.time, "time", lambda: next(clock))
+    with client.websocket_connect("/ws/room1") as ws:
+        for i in range(5):
+            roll(ws, f"message {i}")
+    rolls = client.get("/rooms/room1/rolls").json()
+    assert [r["request"] for r in rolls] == ["message 2", "message 3", "message 4"]
+
+
+def test_room_expires_after_no_rolls(client):
+    with client.websocket_connect("/ws/room1") as ws:
+        roll(ws, "d6")
+    ttl = client.portal.call(main.redis_client.ttl, "room1")
+    assert main.ROOM_TTL_SECONDS - 5 < ttl <= main.ROOM_TTL_SECONDS
+
+
 def test_d0_is_chat_and_keeps_connection(client):
     with client.websocket_connect("/ws/room1") as ws:
         result = roll(ws, "d0")
@@ -93,10 +119,10 @@ def test_room_cleaned_up_after_disconnect(client):
 
 
 def test_room_cleaned_up_after_unexpected_error(client, monkeypatch):
-    async def broken_zadd(*args, **kwargs):
+    async def broken_publish(*args, **kwargs):
         raise RuntimeError("Redis is down")
 
-    monkeypatch.setattr(main.redis_client, "zadd", broken_zadd)
+    monkeypatch.setattr(main.redis_client, "publish", broken_publish)
     with pytest.raises(RuntimeError), client.websocket_connect("/ws/room1") as ws:
         ws.send_json({"name": "Tester", "request": "d6"})
         ws.receive_json()

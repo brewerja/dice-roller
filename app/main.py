@@ -17,6 +17,11 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
 ROLL_PATTERN = re.compile(r"^d[1-9]\d{0,9}(?:,d[1-9]\d{0,9}){0,9}$")
+# Longer names and messages are cut off at this many characters.
+MAX_MESSAGE_CHARS = 500
+# Each room keeps only its newest rolls, and is deleted after this long with no rolls.
+MAX_ROLLS_PER_ROOM = 1000
+ROOM_TTL_SECONDS = 30 * 24 * 60 * 60
 LISTENER_RETRY_SECONDS = 1.0
 # Fail Redis commands and connection attempts instead of waiting forever on a dead connection.
 REDIS_TIMEOUT_SECONDS = 10
@@ -183,8 +188,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 continue  # not valid JSON; ignore it and keep the connection
             if not isinstance(data, dict):
                 continue
-            name = nh3.clean(str(data.get("name", "")))
-            request = nh3.clean(str(data.get("request", "")))
+            name = nh3.clean(str(data.get("name", ""))[:MAX_MESSAGE_CHARS])
+            request = nh3.clean(str(data.get("request", ""))[:MAX_MESSAGE_CHARS])
 
             if request == "ping":
                 await websocket.send_text('{"pong":true}')
@@ -205,7 +210,11 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 "results": results,
             }
             payload = json.dumps(roll)
-            await redis_client.zadd(room_id, {payload: roll["timestamp"]})
+            async with redis_client.pipeline() as pipe:
+                pipe.zadd(room_id, {payload: roll["timestamp"]})
+                pipe.zremrangebyrank(room_id, 0, -MAX_ROLLS_PER_ROOM - 1)
+                pipe.expire(room_id, ROOM_TTL_SECONDS)
+                await pipe.execute()
             await redis_client.publish(f"room:{room_id}", payload)
     except WebSocketDisconnect:
         pass
