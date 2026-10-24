@@ -41,7 +41,7 @@ FastAPI / Python 3.15 real-time dice-rolling app using plain WebSockets with Red
 - `app/main.py` — all WebSocket and REST endpoints, ConnectionManager, roll logic
 - `static/dieroll.js` — native WebSocket client, keyboard shortcuts (R=d6+d6, B=d20, G=d6)
 - `templates/room.html` — Jinja2 template for the room page
-- `static/index.html` — landing page
+- `templates/index.html` — landing page, lists existing rooms (newest roll first)
 - `pyproject.toml` — Python dependencies (fastapi, uvicorn, redis, jinja2, nh3)
 
 **Dice notation regex:** `^d[1-9]\d{0,9}(?:,d[1-9]\d{0,9}){0,9}$`

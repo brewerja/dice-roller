@@ -38,6 +38,21 @@ def test_index_page(client):
     assert "/rooms/" in response.text
 
 
+def test_index_page_lists_rooms_newest_first(client, monkeypatch):
+    for i, room_id in enumerate(["old", "new <b>&"]):
+        monkeypatch.setattr(main.time, "time", lambda i=i: 1_700_000_000.0 + i)
+        with client.websocket_connect(f"/ws/{room_id}") as ws:
+            roll(ws, "d6")
+    text = client.get("/").text
+    assert "new &lt;b&gt;&amp;</a>" in text
+    new_href = 'href="/rooms/new%20%3Cb%3E%26"'
+    assert text.index(new_href) < text.index('href="/rooms/old"')
+
+
+def test_index_page_with_no_rooms(client):
+    assert "No rooms yet." in client.get("/").text
+
+
 def test_room_page_versions_its_script(client):
     response = client.get("/rooms/room1")
     with open("static/dieroll.js", "rb") as f:

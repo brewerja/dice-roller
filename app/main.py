@@ -162,8 +162,19 @@ templates = Jinja2Templates(directory="templates")
 
 
 @app.get("/", include_in_schema=False)
-async def index():
-    return FileResponse("static/index.html")
+async def index(request: Request):
+    # Every sorted set in the database is a room. List them by their latest roll, newest first.
+    room_ids = [key.decode() async for key in redis_client.scan_iter(_type="zset")]
+    async with redis_client.pipeline() as pipe:
+        for room_id in room_ids:
+            pipe.zrange(room_id, -1, -1, withscores=True)
+        latest = await pipe.execute()
+    last_rolled = {
+        room_id: rolls[0][1] if rolls else 0
+        for room_id, rolls in zip(room_ids, latest, strict=True)
+    }
+    rooms = sorted(room_ids, key=last_rolled.__getitem__, reverse=True)
+    return templates.TemplateResponse(request, "index.html", {"rooms": rooms})
 
 
 @app.get("/favicon.ico", include_in_schema=False)
