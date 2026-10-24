@@ -45,7 +45,7 @@ function connectRolls() {
                 // Don't wait on close(): a dead connection can take a long time to finish closing.
                 connectRolls();
             } else {
-                socket.send(JSON.stringify({name: '', request: 'ping'}));
+                socket.send(JSON.stringify({type: 'ping'}));
             }
         }, 5000);
     };
