@@ -191,16 +191,15 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 continue  # not valid JSON; ignore it and keep the connection
             if not isinstance(data, dict):
                 continue
+            if data.get("type") == "ping":
+                await websocket.send_text('{"pong":true}')
+                continue
             name = nh3.clean(
                 str(data.get("name", ""))[:MAX_MESSAGE_CHARS], tags=ALLOWED_TAGS
             )
             request = nh3.clean(
                 str(data.get("request", ""))[:MAX_MESSAGE_CHARS], tags=ALLOWED_TAGS
             )
-
-            if request == "ping":
-                await websocket.send_text('{"pong":true}')
-                continue
 
             results = None
             if ROLL_PATTERN.match(request):
