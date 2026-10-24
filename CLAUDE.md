@@ -55,7 +55,7 @@ FastAPI / Python 3.15 real-time dice-rolling app using plain WebSockets with Red
 ## Production (Fly.io)
 
 - Fly app `ip-dice-roller`, region `ord`, live at https://ip-dice-roller.fly.dev. Two machines; with `auto_stop_machines` one is usually `stopped`, which is normal.
-- **The `python` branch auto-deploys.** Merging a PR into `python` creates a new Fly release within a few minutes. There's no GitHub Actions workflow; open PRs against `python`, not `master`.
+- **The `main` branch auto-deploys.** Merging a PR into `main` creates a new Fly release within a few minutes. The deploys come from Fly's GitHub app (`fly-io[bot]`), whose branch is set in the Fly dashboard; there's no GitHub Actions workflow.
 - The `fly` CLI needs `fly auth login` (interactive; the user runs it as `! fly auth login`).
 
 **Checking a deploy:**
