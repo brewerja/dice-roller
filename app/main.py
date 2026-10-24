@@ -1,10 +1,11 @@
 import asyncio
 import json
+import logging
 import os
 import re
 import secrets
 import time
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import cast
 
 import nh3
@@ -16,6 +17,9 @@ from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
 ROLL_PATTERN = re.compile(r"^d[1-9]\d{0,9}(?:,d[1-9]\d{0,9}){0,9}$")
+LISTENER_RETRY_SECONDS = 1.0
+
+logger = logging.getLogger("uvicorn.error")
 
 
 def create_redis_client() -> aioredis.Redis:
@@ -70,20 +74,42 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
+# asyncio only keeps weak references to tasks, so hold them until they finish.
+background_tasks: set[asyncio.Task] = set()
+
+
+def run_in_background(coro):
+    task = asyncio.create_task(coro)
+    background_tasks.add(task)
+    task.add_done_callback(background_tasks.discard)
+
+
 async def redis_listener():
-    async for message in pubsub.listen():
-        if message["type"] == "message":
-            room_id = message["channel"].decode().removeprefix("room:")
-            asyncio.create_task(
-                manager.broadcast_local(room_id, message["data"].decode())
+    # redis-py reconnects and resubscribes on its own after a brief drop, but gives
+    # up after a few retries. Keep listening for the life of the app regardless.
+    while True:
+        try:
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    room_id = message["channel"].decode().removeprefix("room:")
+                    run_in_background(
+                        manager.broadcast_local(room_id, message["data"].decode())
+                    )
+        except Exception:
+            logger.exception(
+                "Redis listener failed; retrying in %ss", LISTENER_RETRY_SECONDS
             )
+        await asyncio.sleep(LISTENER_RETRY_SECONDS)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await pubsub.subscribe("__init__")
-    asyncio.create_task(redis_listener())
+    listener = asyncio.create_task(redis_listener())
     yield
+    listener.cancel()
+    with suppress(asyncio.CancelledError):
+        await listener
     await pubsub.aclose()
     await redis_client.aclose()
 
