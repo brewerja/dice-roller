@@ -5,10 +5,13 @@ var heartbeatInterval;
 var reconnectTimer = null;
 var pendingMessages = [];
 var displayedRolls = new Set();
+var roomTitle = document.title;
+var unseenRolls = 0;
 
 $(document).ready(
     function() {
         initializeNames();
+        addUnseenRollCount();
         addNameSaveHandlers();
         connectRolls();
         registerKeyboardCallbacks();
@@ -55,7 +58,10 @@ function connectRolls() {
         lastPongTime = Date.now();
         const data = JSON.parse(event.data);
         if (data.pong) return;
-        showRoll(data);
+        if (showRoll(data) && document.hidden) {
+            unseenRolls++;
+            document.title = `(${unseenRolls}) ${roomTitle}`;
+        }
         scrollTop();
     };
     socket.onclose = function() {
@@ -174,7 +180,7 @@ function getRequestDisplay(request, results) {
 function showRoll(roll) {
     // Rolls saved before IDs were added only have a timestamp to tell them apart.
     const key = roll.id ?? roll.timestamp;
-    if (displayedRolls.has(key)) return;
+    if (displayedRolls.has(key)) return false;
     displayedRolls.add(key);
     const ul = $('#rollList');
     ul.find("li").last().removeClass("list-group-item-primary").addClass("list-group-item-secondary");
@@ -195,6 +201,16 @@ function showRoll(roll) {
     li.attr("data-name", new DOMParser().parseFromString(roll.name, "text/html").body.textContent);
     ul.append(li);
     markMyRolls(li);
+    return true;
+}
+
+// While the tab is in the background, the title counts rolls that arrived, e.g. "(3) red — Rolling Room".
+function addUnseenRollCount() {
+    document.addEventListener("visibilitychange", function() {
+        if (document.hidden) return;
+        unseenRolls = 0;
+        document.title = roomTitle;
+    });
 }
 
 // Rolls made under the name in the name box get a colored edge.
