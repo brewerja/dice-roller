@@ -27,19 +27,20 @@ function connectRolls() {
     if (ws) {
         ws.onclose = null;
         ws.close();
+        showStatus("reconnecting");
     }
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const socket = new WebSocket(`${protocol}//${window.location.host}/ws/${roomId}`);
     ws = socket;
     socket.onopen = function() {
         if (socket !== ws) return;
-        $('#connStatus').attr('class', 'text-success').attr('title', 'Connected');
         lastPongTime = Date.now();
         $.get(`/rooms/${roomId}/rolls`, function(rolls) {
             rolls.forEach(showRoll);
             scrollTop();
         });
         while (pendingMessages.length) socket.send(pendingMessages.shift());
+        showStatus("connected");
         heartbeatInterval = setInterval(function() {
             if (Date.now() - lastPongTime > 10000) {
                 // Don't wait on close(): a dead connection can take a long time to finish closing.
@@ -59,7 +60,7 @@ function connectRolls() {
     };
     socket.onclose = function() {
         if (socket !== ws) return;
-        $('#connStatus').attr('class', 'text-danger').attr('title', 'Reconnecting...');
+        showStatus("reconnecting");
         clearInterval(heartbeatInterval);
         if (reconnectTimer === null) reconnectTimer = setTimeout(connectRolls, 1000);
     };
@@ -74,6 +75,19 @@ function send(data) {
     }
     pendingMessages.push(msg);
     if (ws.readyState !== WebSocket.CONNECTING) connectRolls();  // reconnect now rather than waiting for the timer
+    showStatus("reconnecting");
+}
+
+// The dot's color alone is easy to miss and only explained in a tooltip, so
+// say in words when not connected, including how many messages are waiting.
+function showStatus(state) {
+    const waiting = pendingMessages.length ? ` (${pendingMessages.length} waiting to send)` : "";
+    const [cls, text] = {
+        connected: ["text-success", ""],
+        reconnecting: ["text-danger", "Reconnecting…" + waiting],
+    }[state];
+    $("#connStatus").attr("class", cls).attr("title", text || "Connected");
+    $("#connText").attr("class", `${cls} small text-nowrap`).toggleClass("d-none", !text).text(text);
 }
 
 function initializeNames() {

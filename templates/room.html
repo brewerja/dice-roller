@@ -36,7 +36,8 @@ body { height: 100vh; height: 100dvh; }
 <div class="container-sm d-flex flex-column h-100 py-2 gap-2">
     <div class="d-flex align-items-center gap-2">
         <h1 class="text-light fs-4 mb-0 text-truncate"><span class="d-none d-sm-inline">Room: </span>{{ room_id }}</h1>
-        <span id="connStatus" title="Connecting..." class="text-warning">&#9679;</span>
+        <span id="connStatus" title="Connecting…" class="text-warning">&#9679;</span>
+        <span id="connText" class="text-warning small text-nowrap">Connecting…</span>
         <input type="text" class="form-control ms-auto flex-shrink-0" id="name" placeholder="Name" style="width: 8rem;">
     </div>
     <div class="border rounded" id="rollContainer">
