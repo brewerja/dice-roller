@@ -51,3 +51,29 @@ FastAPI / Python 3.15 real-time dice-rolling app using plain WebSockets with Red
 - `REDISHOST`, `REDISPORT`, `REDISPASSWORD` — individual Redis connection params (local dev fallback)
 
 **Security:** TLS termination handled by fly.io proxy; no HTTPS-redirect logic in the app.
+
+## Production (Fly.io)
+
+- Fly app `ip-dice-roller`, region `ord`, live at https://ip-dice-roller.fly.dev. Two machines; with `auto_stop_machines` one is usually `stopped`, which is normal.
+- **The `python` branch auto-deploys.** Merging a PR into `python` creates a new Fly release within a few minutes. There's no GitHub Actions workflow; open PRs against `python`, not `master`.
+- The `fly` CLI needs `fly auth login` (interactive; the user runs it as `! fly auth login`).
+
+**Checking a deploy:**
+```bash
+fly releases -a ip-dice-roller   # newest version should be "complete" a few minutes after merge
+fly status -a ip-dice-roller     # machines should be on that version
+```
+- Confirm the new code from outside: `curl` the room page or `https://ip-dice-roller.fly.dev/static/dieroll.js` and grep for something from the change, or exercise a behavior over `wss://ip-dice-roller.fly.dev/ws/<room>`. Use a throwaway room name, since rolls are saved in the production Redis.
+- The `Warning: Metrics token unavailable` line from `fly` commands is harmless.
+- Browser tabs that were already open keep the old `dieroll.js` until they're reloaded.
+
+**Production reads need the user's go-ahead.** `fly logs` and `fly ssh console` are blocked in auto mode unless the user asks for them. Ask the user to run them with `!`, or run them only when they explicitly request it:
+```bash
+fly logs -a ip-dice-roller --no-tail
+fly ssh console -a ip-dice-roller -C "/app/.venv/bin/python --version"
+```
+
+**Reading the logs:**
+- A healthy cold start goes from `Preparing to run: /app/.venv/bin/uvicorn ...` to `Application startup complete` in about 3 seconds, with no uv `Downloading`/`Building` lines.
+- During a deploy, a few `instance refused connection` errors (requests arriving before uvicorn is listening) and `lease currently held` errors for the second machine are expected. They should stop within seconds.
+- uvicorn logs WebSocket opens (`[accepted]` / `connection open`) but not closes. A tab reconnecting about every 60 seconds, often two at once, meant duplicate client sockets that Fly's proxy closed as idle; this was fixed in PR #4.
