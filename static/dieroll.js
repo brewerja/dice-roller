@@ -93,7 +93,7 @@ function showStatus(state) {
         reconnecting: ["text-danger", "Reconnecting…" + waiting],
     }[state];
     $("#connStatus").attr("class", cls).attr("title", text || "Connected");
-    $("#connText").attr("class", `${cls} small text-nowrap`).toggleClass("d-none", !text).text(text);
+    $("#connText").attr("class", `${cls} small`).toggleClass("d-none", !text).text(text);
 }
 
 function initializeNames() {
