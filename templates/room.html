@@ -39,9 +39,9 @@ input.form-control::placeholder { color: var(--bs-gray-600); }
     <div class="d-flex align-items-center gap-2">
         <h1 class="text-light fs-4 mb-0 text-truncate"><span class="d-none d-sm-inline">Room: </span>{{ room_id }}</h1>
         <span id="connStatus" title="Connecting…" class="text-warning">&#9679;</span>
+        <span id="connText" class="text-warning small" style="flex: 1 1 0; min-width: 6.5rem;">Connecting…</span>
         <input type="text" class="form-control ms-auto flex-shrink-0" id="name" placeholder="Name" style="width: 8rem;">
     </div>
-    <div id="connText" class="text-warning small">Connecting…</div>
     <div class="border rounded" id="rollContainer">
         <ul class="list-group list-group-flush" id="rollList">
         </ul>
